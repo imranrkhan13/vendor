@@ -7,28 +7,21 @@ import {
   ArrowRight,
   BadgeCheck,
   BookOpenCheck,
-  Boxes,
-  Brain,
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   FileSearch,
-  FileText,
   Fingerprint,
   GitBranch,
-  Github,
   GanttChartSquare,
-  Layers3,
   LucideIcon,
   Network,
   Radar,
   Scale,
-  SearchCheck,
   ShieldCheck,
   ShieldQuestion,
   Sparkles,
   TimerReset,
-  UploadCloud,
 } from "lucide-react";
 
 import { Citation, RiskBrief, TraceEvent, streamAssessmentTrace } from "../lib/api";
@@ -195,7 +188,7 @@ function Hero() {
               Try Demo <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-0.5" />
             </a>
             <a href={repoUrl} className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.04] px-6 py-3 text-sm font-medium text-stone-200 backdrop-blur-xl transition hover:bg-white/[0.08]">
-              <Github className="mr-2 h-4 w-4" /> View GitHub
+              <GitBranch className="mr-2 h-4 w-4" /> View GitHub
             </a>
           </div>
         </motion.div>
@@ -774,7 +767,7 @@ function OpenSource() {
               Inspect the agent. Run the demo. Read the rules.
             </h2>
             <a href={repoUrl} className="mt-8 inline-flex items-center rounded-full bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950">
-              <Github className="mr-2 h-4 w-4" /> Repository
+              <GitBranch className="mr-2 h-4 w-4" /> Repository
             </a>
           </div>
           <div className="rounded-[2rem] border border-white/10 bg-black/25 p-5">
