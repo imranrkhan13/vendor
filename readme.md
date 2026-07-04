@@ -26,6 +26,22 @@ auditable review run:
 - breach context is queried as a tool call;
 - risk and confidence scores are deterministic, cited, and explainable.
 
+## Product preview
+
+The frontend is a premium light enterprise SaaS experience using the requested palette:
+
+- background `#F8FAFC`;
+- white cards;
+- borders `#E5E7EB`;
+- primary `#2563EB`;
+- accent `#4F46E5`;
+- success/warning/danger states for risk and findings.
+
+![Product preview](frontend/public/product-preview.svg)
+
+The preview reflects the implemented UI: top metrics, multi-vendor upload, split assessment
+workspace, evidence viewer, gap analysis, and export-ready assessment surfaces.
+
 ## Architecture diagram
 
 ```mermaid
@@ -372,44 +388,52 @@ Root app layout and metadata.
 Global styling foundation:
 
 - Tailwind import;
-- dark premium theme;
-- glassmorphism utilities;
-- subtle grid/noise background;
-- floating and pulse animations.
+- premium light theme only;
+- soft blue/indigo gradients;
+- enterprise card shadows and borders;
+- reusable button/export utilities;
+- print styles for browser PDF export.
 
 #### `/frontend/components/landing-page.tsx`
 
-Main product page and demo surface.
+Main product page, dashboard, assessment workspace, and enterprise demo surface.
 
 What it contains:
 
-- narrative hero with animated security dashboard;
-- problem-story section;
-- horizontal "how it works" timeline;
-- framework intelligence hover cards;
-- animated agent workflow diagram;
-- illustrative enterprise dashboard preview;
-- live demo upload form;
+- premium light landing page with product narrative;
+- problem, workflow, architecture, frameworks, comparison, enterprise readiness, CTA, and footer;
+- top-level dashboard metrics for assessments, average risk, critical findings, framework coverage,
+  and confidence score;
+- animated risk distribution and assessment trend charts;
+- multi-vendor drag-and-drop upload experience with validation, file preview, and progress;
+- split assessment page with vendor, risk, confidence, timeline, frameworks, summaries, evidence,
+  gap analysis, recommendations, generated questions, citations, and confidence breakdown;
+- vendor comparison across SOC2, ISO, GDPR, risk, confidence, controls, breaches, and recommendation;
+- enterprise history table with search, filters, sorting, pagination, sticky header, and hover states;
+- evidence explorer with citation-to-PDF page jump;
+- framework explorer using `/frameworks` when available;
+- export center for browser PDF, Markdown, JSON, and shareable link;
+- continuous-monitoring-ready UI for future reassessment workflows;
 - streaming reasoning trace panel;
-- clickable citation/source viewer with PDF page jump;
-- confidence score breakdown;
-- example assessment split screen;
-- deterministic scoring comparison;
-- enterprise audience section;
-- architecture diagram;
-- open-source card;
-- final CTA and footer wordmark.
+- confidence score breakdown.
 
 Key functions/components:
 
-- `LandingPage`: owns demo state, trace events, selected citation, PDF preview URL, and submission.
-- `DemoAssessment`: upload form plus live output area.
+- `LandingPage`: owns vendor drafts, assessment history, active report, trace events, selected
+  citation, framework data, exports, and local persistence.
+- `ProductWorkspace`: composes dashboard, assessment, comparison, history, exports, monitoring, and
+  framework explorer.
+- `Dashboard`: renders real assessment metrics and animated charts from saved reports.
+- `AssessmentWorkspace`: split assessment surface powered by the active `RiskBrief`.
+- `VendorUploadRow` and `FileDrop`: reusable multi-vendor upload components.
 - `TracePanel`: renders streamed `/trace` events as they arrive.
-- `RiskBriefPanel`: shows risk, confidence, gaps, citations, and category findings.
-- `CitationSourcePanel`: highlights citation quote and jumps the uploaded PDF iframe to the cited
-  page using `#page=`.
-- `HeroDashboard`, `DashboardPreview`, `AgentWorkflow`, `Architecture`: animated narrative and
-  technical sections.
+- `AssessmentLeft` and `AssessmentRight`: render the hero assessment page.
+- `EvidenceExplorer` and `CitationPreview`: link each finding back to evidence and uploaded PDF
+  pages using `#page=`.
+- `VendorComparison`: enterprise comparison table for multiple uploaded vendors.
+- `HistoryTable`: searchable, filterable, sortable, paginated assessment history.
+- `FrameworkExplorer`: interactive SOC2, ISO 27001, and GDPR control explorer.
+- `MonitoringAndExports`: continuous-monitoring-ready controls and export actions.
 
 Connections:
 
@@ -585,9 +609,10 @@ npm audit --omit=dev
    - the product reads SOC2/questionnaire/breach evidence;
    - scoring is deterministic and cited.
 
-5. Scroll to **Live demo**.
+5. Scroll to **Enterprise workspace** and review the dashboard. Before any upload, the dashboard
+   intentionally shows empty-state metrics because no local assessments have been run yet.
 
-6. Upload:
+6. In **Assessment intake**, upload one or more vendors. Each vendor row accepts:
    - a SOC2 Type II PDF;
    - a JSON or CSV questionnaire;
    - optionally a breach-history text file.
@@ -599,7 +624,7 @@ npm audit --omit=dev
    CC6,Is MFA enforced for administrators?,MFA is planned for next quarter,Roadmap item
    ```
 
-8. Click **Try demo**.
+8. Click **Generate assessments**.
 
 9. Watch the **Live reasoning trace** stream:
    - planning frameworks;
@@ -609,16 +634,22 @@ npm audit --omit=dev
    - flagging a gap;
    - computing confidence.
 
-10. Review the **Structured risk brief**:
+10. Review the split **Assessment page**:
     - overall risk;
     - confidence score;
+    - vendor timeline;
+    - framework tags;
+    - executive, technical, legal, and procurement summaries;
+    - evidence viewer;
+    - gap analysis;
+    - generated follow-up questions;
     - missing controls;
     - category breakdown;
     - deterministic gap rationale.
 
 11. Click a citation chip such as `soc2.pdf · page 12`.
 
-12. Confirm the **Source evidence** panel highlights the quoted excerpt and opens the uploaded PDF at
+12. Confirm the **Citation preview** panel highlights the quoted excerpt and opens the uploaded PDF at
     the cited page when the browser PDF viewer supports `#page=`.
 
 13. Read the **Confidence breakdown** formula, for example:
@@ -627,6 +658,15 @@ npm audit --omit=dev
     78% = 12/15 control categories verified with direct evidence,
     2 with partial evidence, 1 with no evidence.
     ```
+
+14. If multiple vendors were uploaded, scroll to **Vendor comparison** and compare SOC2, ISO, GDPR,
+    risk, confidence, controls, breaches, and recommendation.
+
+15. Scroll to **Assessment history** to test search, filtering, sorting, pagination, and opening a
+    previous assessment.
+
+16. Use **Export center** to export the active assessment as browser PDF, Markdown, JSON, or copy a
+    shareable link.
 
 ## Design decisions
 
@@ -662,10 +702,18 @@ evidence counts so reviewers can understand why confidence is high or low.
 
 ### Premium frontend narrative
 
-The landing page is designed to explain the problem, the workflow, and the differentiator quickly.
-It avoids generic SaaS feature cards, fake logos, testimonials, and unsupported claims. The demo
-surface is embedded in the product story so judges can move from narrative to working agent without
-changing context.
+The landing page and workspace use a premium light enterprise SaaS theme inspired by modern
+security, finance, and developer tools. The UI avoids fake logos, testimonials, lorem ipsum, and
+unsupported claims. Dashboard metrics, comparison rows, history, exports, and charts are populated
+from real assessment results generated by the existing API and stored in browser local storage for
+the demo.
+
+### Client-side enterprise features without backend changes
+
+The backend workflows are intentionally unchanged. Multi-vendor comparison, assessment history,
+exports, monitoring-ready cards, and dashboard charts are client-side product capabilities layered on
+top of the existing `/trace`, `/assess`, and `/frameworks` endpoints. This keeps the validated agent
+logic stable while making the product feel like an enterprise platform.
 
 ## Tech stack
 
