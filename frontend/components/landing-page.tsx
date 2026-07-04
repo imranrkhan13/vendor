@@ -1,299 +1,445 @@
 "use client";
 
-import { FormEvent, ReactNode, useMemo, useState } from "react";
-import { motion, useMotionTemplate, useMotionValue, useTransform } from "framer-motion";
+import { ChangeEvent, FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import {
-  ArrowDown,
+  Activity,
   ArrowRight,
-  BadgeCheck,
+  BarChart3,
   BookOpenCheck,
+  Brain,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   ClipboardCheck,
-  FileSearch,
-  Fingerprint,
+  Clock3,
+  Download,
+  ExternalLink,
+  Eye,
+  FileArchive,
+  FileCheck2,
+  FileJson,
+  FileText,
+  Filter,
   GitBranch,
-  GanttChartSquare,
+  History,
+  Layers3,
+  LineChart,
+  Link as LinkIcon,
   LucideIcon,
+  MonitorCheck,
   Network,
-  Radar,
+  Plus,
   Scale,
+  Search,
+  ShieldAlert,
   ShieldCheck,
   ShieldQuestion,
   Sparkles,
-  TimerReset,
+  Table2,
+  UploadCloud,
 } from "lucide-react";
 
 import { Citation, RiskBrief, TraceEvent, streamAssessmentTrace } from "../lib/api";
 
+type VendorDraft = {
+  id: string;
+  name: string;
+  soc2?: File;
+  questionnaire?: File;
+  breach?: File;
+};
+
+type AssessmentRecord = {
+  id: string;
+  createdAt: string;
+  brief: RiskBrief;
+};
+
+type FrameworkControl = {
+  framework: string;
+  id: string;
+  category: string;
+  title: string;
+  description: string;
+};
+
 const repoUrl = "https://github.com/imranrkhan13/vendor";
+const storageKey = "vendor-risk-assessment-history";
 
-const problemSteps = [
-  "Download SOC2",
-  "Read 120 pages",
-  "Compare questionnaire",
-  "Search breach history",
-  "Email security",
-  "Wait days",
-  "Approve manually",
+const defaultFrameworks: FrameworkControl[] = [
+  {
+    framework: "SOC2",
+    id: "CC6",
+    category: "access_control",
+    title: "Logical and Physical Access Controls",
+    description: "Controls restrict logical and physical access to systems, data, and facilities.",
+  },
+  {
+    framework: "SOC2",
+    id: "CC7",
+    category: "security_monitoring",
+    title: "System Operations and Monitoring",
+    description: "Controls monitor system components, detect anomalies, and respond to security events.",
+  },
+  {
+    framework: "SOC2",
+    id: "CC8",
+    category: "change_management",
+    title: "Change Management",
+    description: "Controls authorize, test, approve, and track system changes.",
+  },
+  {
+    framework: "SOC2",
+    id: "A1",
+    category: "availability",
+    title: "Availability",
+    description: "Controls support availability commitments through backups, recovery, and resilience.",
+  },
+  {
+    framework: "ISO27001",
+    id: "A.9",
+    category: "access_control",
+    title: "Access Control",
+    description: "Access to information and systems is limited according to business requirements.",
+  },
+  {
+    framework: "GDPR",
+    id: "Art. 32",
+    category: "data_protection",
+    title: "Security of Processing",
+    description: "Appropriate technical and organizational measures protect personal data.",
+  },
 ];
 
-const howItWorks = [
-  { title: "Upload documents", body: "SOC2, questionnaire, and optional breach context enter one review run." },
-  { title: "Parse SOC2", body: "The parser extracts page-grounded chunks and auditor-opinion language." },
-  { title: "Match controls", body: "Framework mappings align SOC2, ISO 27001, and GDPR categories." },
-  { title: "Retrieve evidence", body: "The agent performs SOC2 retrieval, then questionnaire cross-checking." },
-  { title: "Score risk", body: "Python rules compute gaps, risk, and confidence without LLM scores." },
-  { title: "Generate report", body: "The final brief includes citations, gaps, follow-ups, and trace." },
+const storySteps = [
+  "Upload a SOC2 report.",
+  "Cross-check vendor claims.",
+  "Generate a complete risk assessment in minutes.",
 ];
 
-const frameworkCards = [
-  { name: "SOC2", coverage: "Trust Services Criteria", compliance: "CC6, CC7, CC8, A1", evidence: "Auditor tests + control excerpts" },
-  { name: "ISO 27001", coverage: "Annex A controls", compliance: "A.5, A.8, A.9, A.12", evidence: "Mapped operational controls" },
-  { name: "GDPR", coverage: "Processor obligations", compliance: "Art. 28, 32, 33", evidence: "Data protection + breach signals" },
-];
-
-const workflowNodes = [
-  "Upload",
-  "Planning",
-  "Evidence Retrieval",
-  "Questionnaire Cross-check",
-  "Breach Lookup",
-  "Deterministic Risk Scoring",
-  "Risk Brief",
-];
-
-const enterpriseAudiences = [
-  { icon: ShieldCheck, title: "Security teams", body: "Triage vendor posture before the review queue grows." },
-  { icon: ClipboardCheck, title: "Compliance", body: "Preserve evidence chains for audit-ready decisions." },
-  { icon: Scale, title: "Procurement", body: "Know contract risk before commercial urgency takes over." },
-  { icon: BookOpenCheck, title: "Legal", body: "Surface processor and breach-notification obligations early." },
-  { icon: Network, title: "Vendor Management", body: "Track consistent follow-ups across every supplier." },
-];
-
-const architecture = [
-  "Parser",
-  "Framework Registry",
-  "Planning Agent",
-  "Evidence Retrieval",
-  "Scoring Engine",
-  "FastAPI",
-  "Next.js",
-  "Risk Report",
+const productSections = [
+  ["Problem", "Vendor reviews are split across PDFs, spreadsheets, inboxes, and breach searches."],
+  ["How it works", "The agent plans, retrieves evidence twice, calls tools, scores deterministically, and produces a cited brief."],
+  ["Architecture", "Parser, framework registry, planning agent, retriever, scoring engine, FastAPI, and Next.js stay separate."],
+  ["Workflow", "A live reasoning trace shows every step from upload to risk brief."],
+  ["Supported frameworks", "SOC2, ISO 27001, and GDPR mappings normalize controls into comparable categories."],
+  ["Risk preview", "Security teams see risk, confidence, missing controls, follow-ups, and citations together."],
+  ["Comparison", "Compare vendors by controls, breaches, confidence, and recommendation."],
+  ["Enterprise ready", "History, exports, evidence explorer, and monitoring prepare the demo for real vendor operations."],
 ];
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0 },
 };
 
+const createDraft = (): VendorDraft => ({
+  id: crypto.randomUUID(),
+  name: "",
+});
+
 export default function LandingPage() {
-  const [brief, setBrief] = useState<RiskBrief | null>(null);
+  const [drafts, setDrafts] = useState<VendorDraft[]>([createDraft()]);
+  const [records, setRecords] = useState<AssessmentRecord[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [trace, setTrace] = useState<TraceEvent[]>([]);
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [frameworks, setFrameworks] = useState<FrameworkControl[]>(defaultFrameworks);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    const saved = window.localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as AssessmentRecord[];
+        setRecords(parsed);
+        setActiveId(parsed[0]?.id ?? null);
+      } catch {
+        window.localStorage.removeItem(storageKey);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(storageKey, JSON.stringify(records));
+  }, [records]);
+
+  useEffect(() => {
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+    fetch(`${apiBase}/frameworks`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (payload?.controls?.length) {
+          setFrameworks(payload.controls);
+        }
+      })
+      .catch(() => {
+        setFrameworks(defaultFrameworks);
+      });
+  }, []);
+
+  const activeRecord = useMemo(
+    () => records.find((record) => record.id === activeId) ?? records[0] ?? null,
+    [activeId, records],
+  );
+
+  const filteredRecords = useMemo(() => {
+    return records.filter((record) => {
+      const matchesQuery = record.brief.vendor_name.toLowerCase().includes(query.toLowerCase());
+      const matchesStatus = statusFilter === "all" || record.brief.overall_risk_level === statusFilter;
+      return matchesQuery && matchesStatus;
+    });
+  }, [query, records, statusFilter]);
+
+  const metrics = useMemo(() => buildMetrics(records), [records]);
+
+  async function assessDrafts(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const soc2File = formData.get("soc2_report");
+    setError(null);
+    setTrace([]);
+    setLoading(true);
+    setUploadProgress(8);
 
-    if (soc2File instanceof File) {
-      setPdfUrl(URL.createObjectURL(soc2File));
+    const validDrafts = drafts.filter((draft) => draft.name && draft.soc2 && draft.questionnaire);
+    if (!validDrafts.length) {
+      setError("Add at least one vendor with a SOC2 PDF and questionnaire.");
+      setLoading(false);
+      setUploadProgress(0);
+      return;
     }
 
-    setBrief(null);
-    setTrace([]);
-    setSelectedCitation(null);
-    setError(null);
-    setLoading(true);
-
     try {
-      const result = await streamAssessmentTrace(formData, (traceEvent) => {
-        setTrace((current) => [...current, traceEvent]);
-      });
-      setBrief(result);
-      const firstCitation = result.categories.flatMap((category) => category.citations)[0];
-      if (firstCitation) {
-        setSelectedCitation(firstCitation);
+      const nextRecords: AssessmentRecord[] = [];
+      for (const [index, draft] of validDrafts.entries()) {
+        const formData = new FormData();
+        formData.append("vendor_name", draft.name);
+        formData.append("soc2_report", draft.soc2 as File);
+        formData.append("questionnaire", draft.questionnaire as File);
+        if (draft.breach) {
+          formData.append("breach_history", draft.breach);
+        }
+        setPdfUrl(URL.createObjectURL(draft.soc2 as File));
+        setUploadProgress(Math.round((index / validDrafts.length) * 70) + 12);
+
+        const brief = await streamAssessmentTrace(formData, (eventItem) => {
+          setTrace((current) => [...current, { ...eventItem, message: `${draft.name}: ${eventItem.message}` }]);
+        });
+        nextRecords.push({
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+          brief,
+        });
       }
+
+      setRecords((current) => [...nextRecords, ...current]);
+      setActiveId(nextRecords[0]?.id ?? null);
+      const firstCitation = nextRecords[0]?.brief.categories.flatMap((category) => category.citations)[0];
+      setSelectedCitation(firstCitation ?? null);
+      setUploadProgress(100);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Assessment failed");
     } finally {
       setLoading(false);
+      setTimeout(() => setUploadProgress(0), 900);
     }
   }
 
+  function updateDraft(id: string, patch: Partial<VendorDraft>) {
+    setDrafts((current) => current.map((draft) => (draft.id === id ? { ...draft, ...patch } : draft)));
+  }
+
+  function exportRecord(format: "json" | "markdown" | "pdf", record: AssessmentRecord | null = activeRecord) {
+    if (!record) return;
+    if (format === "pdf") {
+      window.print();
+      return;
+    }
+    const content =
+      format === "json" ? JSON.stringify(record.brief, null, 2) : toMarkdown(record.brief);
+    const blob = new Blob([content], { type: format === "json" ? "application/json" : "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${record.brief.vendor_name.toLowerCase().replace(/\s+/g, "-")}-risk-brief.${format === "json" ? "json" : "md"}`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function copyShareLink() {
+    const url = new URL(window.location.href);
+    url.hash = activeRecord ? `assessment-${activeRecord.id}` : "dashboard";
+    navigator.clipboard?.writeText(url.toString());
+  }
+
   return (
-    <main className="relative overflow-hidden">
-      <div className="grain pointer-events-none fixed inset-0 z-0 opacity-[0.07]" />
-      <div className="subtle-grid pointer-events-none absolute inset-x-0 top-0 z-0 h-[860px]" />
+    <main className="relative overflow-hidden text-slate-950">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[#F8FAFC]" />
+      <div className="soft-grid pointer-events-none absolute inset-x-0 top-0 -z-10 h-[760px]" />
+      <Nav />
       <Hero />
-      <Problem />
-      <HowItWorks />
-      <FrameworkIntelligence />
-      <AgentWorkflow />
-      <DashboardPreview />
-      <DemoAssessment
-        brief={brief}
+      <StorySections frameworks={frameworks} />
+      <ProductWorkspace
+        activeRecord={activeRecord}
+        copyShareLink={copyShareLink}
+        drafts={drafts}
         error={error}
+        exportRecord={exportRecord}
+        filteredRecords={filteredRecords}
+        frameworks={frameworks}
         loading={loading}
-        onSubmit={onSubmit}
+        metrics={metrics}
         pdfUrl={pdfUrl}
+        query={query}
+        records={records}
         selectedCitation={selectedCitation}
+        setActiveId={setActiveId}
+        setDrafts={setDrafts}
+        setQuery={setQuery}
         setSelectedCitation={setSelectedCitation}
+        setStatusFilter={setStatusFilter}
+        statusFilter={statusFilter}
+        submit={assessDrafts}
         trace={trace}
+        updateDraft={updateDraft}
+        uploadProgress={uploadProgress}
       />
-      <ExampleAssessment />
-      <DeterministicScoring />
-      <BuiltForEnterprise />
-      <Architecture />
-      <OpenSource />
-      <FinalCta />
+      <CTA />
+      <Footer />
     </main>
+  );
+}
+
+function Nav() {
+  return (
+    <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 md:px-8">
+        <a href="#" className="flex items-center gap-3 text-sm font-semibold text-slate-950">
+          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
+            <ShieldCheck className="h-5 w-5" />
+          </span>
+          Vendor Risk Assessment Agent
+        </a>
+        <nav className="hidden items-center gap-7 text-sm text-slate-600 lg:flex">
+          {["Platform", "Dashboard", "Assessment", "Frameworks", "History"].map((item) => (
+            <a key={item} href={`#${item.toLowerCase()}`} className="transition hover:text-blue-600">
+              {item}
+            </a>
+          ))}
+        </nav>
+        <a
+          href={repoUrl}
+          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+        >
+          <GitBranch className="h-4 w-4" />
+          Source
+        </a>
+      </div>
+    </header>
   );
 }
 
 function Hero() {
   return (
-    <Section className="min-h-screen pt-8">
-      <nav className="relative z-10 flex items-center justify-between rounded-full border border-white/10 bg-white/[0.035] px-5 py-3 backdrop-blur-2xl">
-        <div className="flex items-center gap-3 text-sm text-stone-200">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
-            <Fingerprint className="h-4 w-4" />
-          </div>
-          Vendor Risk Assessment Agent
+    <section className="mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-20 md:px-8 lg:grid-cols-[1fr_0.95fr] lg:pb-28 lg:pt-28">
+      <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.7 }}>
+        <Pill icon={Sparkles}>Enterprise security reviews, automated</Pill>
+        <h1 className="mt-8 max-w-5xl text-5xl font-semibold tracking-[-0.06em] text-slate-950 md:text-7xl lg:text-[5.8rem] lg:leading-[0.9]">
+          Vendor risk assessments that read the evidence first.
+        </h1>
+        <div className="mt-8 grid gap-3 text-xl leading-8 text-slate-600 md:text-2xl">
+          {storySteps.map((step, index) => (
+            <motion.p
+              key={step}
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.18 + index * 0.12 }}
+            >
+              {step}
+            </motion.p>
+          ))}
         </div>
-        <a className="hidden text-sm text-stone-400 transition hover:text-stone-100 md:block" href={repoUrl}>
-          View source
-        </a>
-      </nav>
-
-      <div className="grid items-center gap-12 py-24 lg:grid-cols-[1.02fr_0.98fr] lg:py-32">
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.8 }} className="relative z-10">
-          <Pill>Vultr track · AI security review agent</Pill>
-          <h1 className="mt-8 max-w-5xl text-6xl font-semibold tracking-[-0.075em] text-stone-50 md:text-8xl lg:text-[7.8rem] lg:leading-[0.86]">
-            Stop spending weeks reviewing vendor security.
-          </h1>
-          <p className="mt-8 max-w-2xl text-xl leading-8 text-stone-400 md:text-2xl">
-            Know the risk before you sign the contract. The agent reads SOC2 reports,
-            questionnaires, and breach history, then returns an evidence-backed assessment with
-            deterministic scores.
-          </p>
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-            <a href="#demo" className="group inline-flex items-center justify-center rounded-full bg-stone-100 px-6 py-3 text-sm font-medium text-stone-950 transition hover:bg-white">
-              Try Demo <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-0.5" />
-            </a>
-            <a href={repoUrl} className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.04] px-6 py-3 text-sm font-medium text-stone-200 backdrop-blur-xl transition hover:bg-white/[0.08]">
-              <GitBranch className="mr-2 h-4 w-4" /> View GitHub
-            </a>
-          </div>
-        </motion.div>
-        <HeroDashboard />
-      </div>
-    </Section>
+        <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-600">
+          Upload SOC2 reports, security questionnaires, and breach context. The agent plans the
+          review, cross-checks claims, exposes its reasoning trace, and generates a cited risk brief.
+        </p>
+        <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+          <a href="#assessment" className="btn-primary">
+            Start assessment <ArrowRight className="h-4 w-4" />
+          </a>
+          <a href="#dashboard" className="btn-secondary">
+            View dashboard
+          </a>
+        </div>
+      </motion.div>
+      <HeroIllustration />
+    </section>
   );
 }
 
-function HeroDashboard() {
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const rotateX = useTransform(mouseY, [-240, 240], [8, -8]);
-  const rotateY = useTransform(mouseX, [-240, 240], [-8, 8]);
-  const glow = useMotionTemplate`radial-gradient(circle at ${mouseX}px ${mouseY}px, rgba(245,243,238,0.16), transparent 32%)`;
-
+function HeroIllustration() {
   return (
     <motion.div
-      className="relative z-10 mx-auto w-full max-w-xl"
-      onMouseMove={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        mouseX.set(event.clientX - rect.left - rect.width / 2);
-        mouseY.set(event.clientY - rect.top - rect.height / 2);
-      }}
-      style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-      initial={{ opacity: 0, scale: 0.94, y: 26 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.9, delay: 0.18 }}
+      initial={{ opacity: 0, y: 30, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.8, delay: 0.15 }}
+      className="relative"
     >
-      <motion.div className="pointer-events-none absolute inset-0 rounded-[2rem]" style={{ background: glow }} />
-      <div className="glass relative overflow-hidden rounded-[2rem] p-5">
-        <motion.div className="scan-line absolute left-0 top-20 h-px w-full" animate={{ x: ["-100%", "100%"] }} transition={{ duration: 3.4, repeat: Infinity, ease: "linear" }} />
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.26em] text-stone-500">Live security review</p>
-            <h3 className="mt-1 text-xl font-medium text-stone-100">Acme Cloud</h3>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-stone-300">
-            <span className="h-2 w-2 rounded-full bg-stone-200 shadow-[0_0_16px_rgba(245,243,238,0.8)]" />
-            Live scanning
-          </div>
-        </div>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <AnimatedMetric label="Risk score" value="42" suffix="/100" />
-          <AnimatedMetric label="Confidence" value="78" suffix="%" />
-        </div>
-
-        <div className="mt-4 rounded-3xl border border-white/10 bg-black/20 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm text-stone-300">SOC2 parsing</span>
-            <span className="text-xs text-stone-500">CC6 · CC7 · A1</span>
-          </div>
-          {["Controls verified", "Questionnaire matched", "Breach history checked"].map((item, index) => (
+      <div className="absolute -left-10 top-10 h-48 w-48 rounded-full bg-blue-200/50 blur-3xl" />
+      <div className="absolute -right-8 bottom-12 h-52 w-52 rounded-full bg-indigo-200/60 blur-3xl" />
+      <div className="relative rounded-[2rem] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-200/80">
+        <div className="rounded-[1.5rem] border border-slate-100 bg-gradient-to-br from-slate-50 to-white p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Assessment workspace
+              </p>
+              <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
+                Evidence-led review
+              </h3>
+            </div>
             <motion.div
-              className="mb-3 last:mb-0"
-              key={item}
-              initial={{ opacity: 0.35 }}
-              animate={{ opacity: [0.35, 1, 0.65] }}
-              transition={{ duration: 2.5, repeat: Infinity, delay: index * 0.35 }}
+              animate={{ rotate: [0, 4, -4, 0] }}
+              transition={{ duration: 5, repeat: Infinity }}
+              className="rounded-2xl bg-blue-600 p-3 text-white shadow-lg shadow-blue-600/20"
             >
-              <div className="mb-1 flex justify-between text-xs text-stone-400">
-                <span>{item}</span>
-                <span>{index === 0 ? "12/15" : index === 1 ? "8 answers" : "1 signal"}</span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-stone-500 to-stone-100"
-                  initial={{ width: "18%" }}
-                  animate={{ width: index === 0 ? "78%" : index === 1 ? "62%" : "42%" }}
-                  transition={{ duration: 1.6, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
-                />
-              </div>
+              <Brain className="h-6 w-6" />
             </motion.div>
-          ))}
-        </div>
-
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          {["SOC2", "ISO 27001", "GDPR"].map((badge) => (
-            <motion.div
-              key={badge}
-              className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3 text-center text-xs text-stone-300"
-              animate={{ y: [0, -5, 0] }}
-              transition={{ duration: 4, repeat: Infinity, delay: badge.length * 0.12 }}
-            >
-              {badge}
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-          <p className="mb-3 text-xs uppercase tracking-[0.22em] text-stone-500">Vendor timeline</p>
-          <div className="relative">
-            <div className="absolute left-2 top-2 h-[72px] w-px bg-gradient-to-b from-stone-200/70 to-transparent" />
-            {["SOC2 uploaded", "CC6 gap detected", "Risk brief ready"].map((event, index) => (
+          </div>
+          <div className="mt-6 grid gap-3">
+            {[
+              ["SOC2 parsing", "Page citations extracted", "100%"],
+              ["Claim cross-check", "Questionnaire mapped", "Running"],
+              ["Risk scoring", "Deterministic rules", "Auditable"],
+            ].map(([title, detail, value], index) => (
               <motion.div
-                key={event}
-                className="relative mb-3 flex items-center gap-3 text-sm text-stone-300 last:mb-0"
-                initial={{ opacity: 0.45, x: -8 }}
-                animate={{ opacity: [0.45, 1, 0.45], x: 0 }}
-                transition={{ duration: 3, repeat: Infinity, delay: index * 0.5 }}
+                key={title}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 4.5, repeat: Infinity, delay: index * 0.2 }}
               >
-                <span className="z-10 h-4 w-4 rounded-full border border-stone-200/70 bg-stone-950" />
-                {event}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-medium text-slate-900">{title}</p>
+                    <p className="mt-1 text-sm text-slate-500">{detail}</p>
+                  </div>
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                    {value}
+                  </span>
+                </div>
               </motion.div>
+            ))}
+          </div>
+          <div className="mt-5 grid grid-cols-3 gap-3">
+            {["SOC2", "ISO 27001", "GDPR"].map((item) => (
+              <div key={item} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-center text-sm font-medium text-slate-700">
+                {item}
+              </div>
             ))}
           </div>
         </div>
@@ -302,262 +448,644 @@ function HeroDashboard() {
   );
 }
 
-function Problem() {
+function StorySections({ frameworks }: { frameworks: FrameworkControl[] }) {
   return (
-    <Section>
-      <SectionHeader eyebrow="The problem" title="A vendor review is still a detective story." body="Security teams jump across PDFs, spreadsheets, inboxes, and breach searches just to answer one question: can we trust this vendor?" />
-      <div className="mt-14 grid gap-6 lg:grid-cols-[1fr_auto_1fr]">
-        <div className="glass rounded-[2rem] p-5">
-          {problemSteps.map((step, index) => (
-            <motion.div
-              key={step}
-              className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-stone-300 last:mb-0"
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-80px" }}
-              variants={fadeUp}
-              transition={{ delay: index * 0.06 }}
-            >
-              <span>{step}</span>
-              <span className="text-xs text-stone-600">0{index + 1}</span>
-            </motion.div>
-          ))}
-        </div>
-        <div className="flex items-center justify-center text-stone-500">
-          <ArrowRight className="hidden h-8 w-8 lg:block" />
-          <ArrowDown className="h-8 w-8 lg:hidden" />
-        </div>
-        <div className="glass flex flex-col justify-center rounded-[2rem] p-8">
-          <p className="text-sm uppercase tracking-[0.24em] text-stone-500">Vendor Risk Agent</p>
-          <div className="mt-8 grid gap-4">
-            {["Upload", "Analyze", "Decision"].map((step, index) => (
-              <motion.div
-                key={step}
-                className="flex items-center gap-4 text-3xl font-medium tracking-[-0.04em] text-stone-100"
-                initial={{ opacity: 0, x: 24 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.12 }}
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-sm text-stone-400">
-                  {index + 1}
-                </span>
-                {step}
-              </motion.div>
-            ))}
-          </div>
-          <div className="mt-10 text-6xl font-semibold tracking-[-0.07em] text-stone-50">30 seconds.</div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function HowItWorks() {
-  return (
-    <Section>
-      <SectionHeader eyebrow="How it works" title="One continuous review, from evidence to decision." body="The agent does not stop at retrieval. It plans, cross-checks, calls tools, reasons over conflicts, and emits an auditable brief." />
-      <div className="mt-14 grid gap-4 lg:grid-cols-6">
-        {howItWorks.map((item, index) => (
-          <motion.div
-            key={item.title}
-            className="glass rounded-[1.75rem] p-5 lg:min-h-[260px]"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={fadeUp}
-            transition={{ delay: index * 0.05 }}
-          >
-            <span className="text-sm text-stone-500">0{index + 1}</span>
-            <h3 className="mt-8 text-2xl font-medium tracking-[-0.04em] text-stone-100">{item.title}</h3>
-            <p className="mt-4 text-sm leading-6 text-stone-400">{item.body}</p>
-          </motion.div>
+    <section id="platform" className="mx-auto max-w-7xl px-5 py-20 md:px-8">
+      <SectionHeader
+        eyebrow="A complete review system"
+        title="Built to answer what matters in the first few minutes."
+        body="The product experience makes the review path visible: what evidence was read, which controls were matched, where gaps appeared, and why the score changed."
+      />
+      <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {productSections.map(([title, body], index) => (
+          <AnimatedCard key={title} delay={index * 0.04}>
+            <span className="text-sm font-semibold text-blue-600">0{index + 1}</span>
+            <h3 className="mt-5 text-xl font-semibold tracking-[-0.03em] text-slate-950">{title}</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{body}</p>
+          </AnimatedCard>
         ))}
       </div>
-    </Section>
-  );
-}
-
-function FrameworkIntelligence() {
-  return (
-    <Section>
-      <SectionHeader eyebrow="Framework intelligence" title="Control mappings, not keyword soup." body="SOC2, ISO 27001, and GDPR are normalized into review categories the agent can compare against both audited and self-reported evidence." />
-      <div className="mt-14 grid gap-6 md:grid-cols-3">
-        {frameworkCards.map((framework, index) => (
-          <motion.div
-            key={framework.name}
-            className="glass group min-h-[320px] overflow-hidden rounded-[2rem] p-6 transition duration-500 hover:-translate-y-2 hover:bg-white/[0.08]"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.08 }}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-4xl font-semibold tracking-[-0.06em] text-stone-50">{framework.name}</h3>
-              <BadgeCheck className="h-5 w-5 text-stone-500 transition group-hover:text-stone-100" />
-            </div>
-            <p className="mt-8 text-stone-400">{framework.coverage}</p>
-            <div className="mt-8 grid gap-3 opacity-80 transition group-hover:opacity-100">
-              <Detail label="Control mappings" value={framework.compliance} />
-              <Detail label="Compliance %" value="Computed from matched evidence" />
-              <Detail label="Evidence matched" value={framework.evidence} />
-            </div>
-          </motion.div>
-        ))}
+      <div className="mt-10 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        <ProblemFlow />
+        <ArchitectureFlow />
       </div>
-    </Section>
+      <FrameworkExplorer frameworks={frameworks} compact />
+    </section>
   );
 }
 
-function AgentWorkflow() {
-  return (
-    <Section>
-      <SectionHeader eyebrow="Agent workflow" title="The part judges need to see: a real multi-step agent." body="Every transition is explicit: planning, two retrieval passes, a tool call, deterministic reasoning, and a cited brief." />
-      <div className="glass mt-14 overflow-hidden rounded-[2.5rem] p-6">
-        <div className="grid gap-4 md:grid-cols-7">
-          {workflowNodes.map((node, index) => (
-            <motion.div
-              key={node}
-              className="relative rounded-3xl border border-white/10 bg-black/25 p-4 text-center"
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.08 }}
-            >
-              <motion.div className="mx-auto mb-4 h-2 w-2 rounded-full bg-stone-200" animate={{ boxShadow: ["0 0 0 rgba(245,243,238,0)", "0 0 28px rgba(245,243,238,0.55)", "0 0 0 rgba(245,243,238,0)"] }} transition={{ duration: 2.8, repeat: Infinity, delay: index * 0.18 }} />
-              <p className="text-sm text-stone-300">{node}</p>
-              {index < workflowNodes.length - 1 ? (
-                <motion.div className="absolute right-[-18px] top-1/2 z-10 hidden h-px w-9 bg-gradient-to-r from-stone-500 to-transparent md:block" initial={{ scaleX: 0 }} whileInView={{ scaleX: 1 }} viewport={{ once: true }} transition={{ delay: 0.2 + index * 0.09 }} />
-              ) : null}
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function DashboardPreview() {
-  return (
-    <Section>
-      <SectionHeader eyebrow="Illustrative Preview" title="What an enterprise review screen should feel like." body="A realistic dashboard preview built in React: risk, confidence, gaps, evidence, framework coverage, and follow-ups in one decision surface." />
-      <div className="glass mt-14 grid gap-5 rounded-[2.5rem] p-5 lg:grid-cols-[0.85fr_1.15fr]">
-        <div className="grid gap-5">
-          <PreviewPanel title="Overall Risk" value="Medium" icon={Radar} />
-          <PreviewPanel title="Confidence" value="78%" icon={Sparkles} />
-          <PreviewPanel title="Vendor Score" value="42 / 100" icon={GanttChartSquare} />
-        </div>
-        <div className="grid gap-5">
-          <div className="grid gap-5 md:grid-cols-2">
-            <PreviewList title="Missing Controls" items={["CC6.1 evidence incomplete", "Art. 33 notification detail missing"]} />
-            <PreviewList title="Failed Controls" items={["MFA planned, not enforced", "Breach follow-up unresolved"]} />
-          </div>
-          <div className="grid gap-5 md:grid-cols-[1fr_0.9fr]">
-            <PreviewList title="Recommended Follow-ups" items={["Send MFA enforcement attestation", "Confirm breach-notification SLA", "Provide latest access review"]} />
-            <FrameworkBars />
-          </div>
-          <div className="grid gap-5 md:grid-cols-2">
-            <RiskTimeline />
-            <EvidenceViewerMini />
-          </div>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function DemoAssessment({
-  brief,
-  error,
-  loading,
-  onSubmit,
-  pdfUrl,
-  selectedCitation,
-  setSelectedCitation,
-  trace,
-}: {
-  brief: RiskBrief | null;
+function ProductWorkspace(props: {
+  activeRecord: AssessmentRecord | null;
+  copyShareLink: () => void;
+  drafts: VendorDraft[];
   error: string | null;
+  exportRecord: (format: "json" | "markdown" | "pdf", record?: AssessmentRecord | null) => void;
+  filteredRecords: AssessmentRecord[];
+  frameworks: FrameworkControl[];
   loading: boolean;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  metrics: ReturnType<typeof buildMetrics>;
   pdfUrl: string | null;
+  query: string;
+  records: AssessmentRecord[];
   selectedCitation: Citation | null;
+  setActiveId: (id: string) => void;
+  setDrafts: (drafts: VendorDraft[] | ((current: VendorDraft[]) => VendorDraft[])) => void;
+  setQuery: (query: string) => void;
   setSelectedCitation: (citation: Citation) => void;
+  setStatusFilter: (status: string) => void;
+  statusFilter: string;
+  submit: (event: FormEvent<HTMLFormElement>) => void;
   trace: TraceEvent[];
+  updateDraft: (id: string, patch: Partial<VendorDraft>) => void;
+  uploadProgress: number;
 }) {
   return (
-    <Section id="demo">
-      <SectionHeader eyebrow="Live demo" title="Watch the agent think, then verify the evidence." body="Upload documents once. The trace panel streams the reasoning path, citations become clickable, and the confidence score explains itself." />
-      <div className="mt-14 grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
-        <form className="glass rounded-[2rem] p-6" onSubmit={onSubmit}>
-          <h3 className="text-3xl font-medium tracking-[-0.05em] text-stone-100">Run assessment</h3>
-          <div className="mt-6 grid gap-4">
-            <Field label="Vendor name">
-              <input name="vendor_name" required placeholder="Acme Cloud" className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-stone-100 outline-none transition placeholder:text-stone-600 focus:border-white/25" />
-            </Field>
-            <Field label="SOC2 Type II report">
-              <input name="soc2_report" type="file" accept="application/pdf" required className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-stone-400 file:mr-4 file:rounded-full file:border-0 file:bg-stone-200 file:px-3 file:py-2 file:text-sm file:text-stone-950" />
-            </Field>
-            <Field label="Security questionnaire">
-              <input name="questionnaire" type="file" accept=".json,.csv" required className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-stone-400 file:mr-4 file:rounded-full file:border-0 file:bg-stone-200 file:px-3 file:py-2 file:text-sm file:text-stone-950" />
-            </Field>
-            <Field label="Optional breach history">
-              <input name="breach_history" type="file" accept=".txt,.md,.csv,.json" className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-stone-400 file:mr-4 file:rounded-full file:border-0 file:bg-stone-200 file:px-3 file:py-2 file:text-sm file:text-stone-950" />
-            </Field>
-          </div>
-          <button disabled={loading} className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60">
-            {loading ? "Streaming reasoning trace..." : "Try demo"}
-          </button>
-          {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
-          <p className="mt-5 text-sm leading-6 text-stone-500">
-            For a gap demonstration, use a questionnaire answer such as "MFA is planned" while
-            SOC2 evidence describes effective access controls.
-          </p>
-        </form>
+    <section id="dashboard" className="mx-auto max-w-7xl px-5 py-20 md:px-8">
+      <SectionHeader
+        eyebrow="Enterprise workspace"
+        title="A security platform, not a one-off upload form."
+        body="Dashboard, assessment workspace, vendor comparison, history, evidence explorer, and exports are all powered by real assessment results from the existing API."
+      />
+      <Dashboard metrics={props.metrics} records={props.records} />
+      <AssessmentWorkspace {...props} />
+      <VendorComparison records={props.records} />
+      <HistoryTable
+        exportRecord={props.exportRecord}
+        filteredRecords={props.filteredRecords}
+        query={props.query}
+        setActiveId={props.setActiveId}
+        setQuery={props.setQuery}
+        setStatusFilter={props.setStatusFilter}
+        statusFilter={props.statusFilter}
+      />
+      <MonitoringAndExports activeRecord={props.activeRecord} copyShareLink={props.copyShareLink} exportRecord={props.exportRecord} />
+      <FrameworkExplorer frameworks={props.frameworks} />
+    </section>
+  );
+}
 
-        <div className="grid gap-6">
-          <TracePanel trace={trace} loading={loading} />
-          {brief ? (
-            <RiskBriefPanel brief={brief} onCitationClick={setSelectedCitation} selectedCitation={selectedCitation} />
-          ) : (
-            <div className="glass rounded-[2rem] p-6">
-              <p className="text-sm uppercase tracking-[0.24em] text-stone-500">Awaiting documents</p>
-              <h3 className="mt-3 text-3xl font-medium tracking-[-0.05em] text-stone-100">Risk brief appears here.</h3>
-              <p className="mt-4 text-stone-400">Judges will see the plan, evidence matches, gaps, deterministic score, and citations in one panel.</p>
-            </div>
-          )}
-          <CitationSourcePanel citation={selectedCitation} pdfUrl={pdfUrl} />
+function Dashboard({ metrics, records }: { metrics: ReturnType<typeof buildMetrics>; records: AssessmentRecord[] }) {
+  return (
+    <div className="mt-12">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <MetricCard title="Assessments" value={String(metrics.assessments)} icon={ClipboardCheck} tone="blue" />
+        <MetricCard title="Average Risk" value={`${metrics.averageRisk}/100`} icon={ShieldAlert} tone="amber" />
+        <MetricCard title="Critical Findings" value={String(metrics.criticalFindings)} icon={ShieldQuestion} tone="red" />
+        <MetricCard title="Framework Coverage" value={`${metrics.frameworkCoverage}%`} icon={Layers3} tone="indigo" />
+        <MetricCard title="Confidence Score" value={`${metrics.confidence}%`} icon={Sparkles} tone="green" />
+      </div>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <Card>
+          <CardHeader icon={LineChart} title="Assessment Trend" subtitle="Historical assessments from this browser session." />
+          <AssessmentTrend records={records} />
+        </Card>
+        <Card>
+          <CardHeader icon={BarChart3} title="Risk Distribution" subtitle="Low, medium, and high vendor risk across saved reports." />
+          <RiskDistribution records={records} />
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function AssessmentWorkspace({
+  activeRecord,
+  copyShareLink,
+  drafts,
+  error,
+  exportRecord,
+  loading,
+  pdfUrl,
+  records,
+  selectedCitation,
+  setActiveId,
+  setDrafts,
+  setSelectedCitation,
+  submit,
+  trace,
+  updateDraft,
+  uploadProgress,
+}: Parameters<typeof ProductWorkspace>[0]) {
+  return (
+    <div id="assessment" className="mt-14 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+      <Card>
+        <CardHeader icon={UploadCloud} title="Assessment intake" subtitle="Drag, validate, and assess one or more vendors." />
+        <form onSubmit={submit} className="mt-6 grid gap-4">
+          {drafts.map((draft, index) => (
+            <VendorUploadRow key={draft.id} draft={draft} index={index} updateDraft={updateDraft} />
+          ))}
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setDrafts((current) => [...current, createDraft()])}
+              className="btn-secondary justify-center"
+            >
+              <Plus className="h-4 w-4" />
+              Add vendor
+            </button>
+            <button type="submit" disabled={loading} className="btn-primary justify-center disabled:cursor-not-allowed disabled:opacity-60">
+              {loading ? "Assessing vendors" : "Generate assessments"}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+          {uploadProgress > 0 ? <ProgressBar value={uploadProgress} label="Upload and reasoning progress" /> : null}
+          {error ? <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+        </form>
+        <TracePanel trace={trace} loading={loading} />
+      </Card>
+
+      <Card>
+        <CardHeader icon={Eye} title="Assessment page" subtitle="Split view for risk, timeline, evidence, gaps, recommendations, and citations." />
+        {activeRecord ? (
+          <div className="mt-6 grid gap-5 lg:grid-cols-[0.82fr_1.18fr]">
+            <AssessmentLeft record={activeRecord} records={records} setActiveId={setActiveId} />
+            <AssessmentRight
+              copyShareLink={copyShareLink}
+              exportRecord={exportRecord}
+              pdfUrl={pdfUrl}
+              record={activeRecord}
+              selectedCitation={selectedCitation}
+              setSelectedCitation={setSelectedCitation}
+            />
+          </div>
+        ) : (
+          <EmptyState
+            icon={FileCheck2}
+            title="Run your first assessment"
+            body="The assessment workspace will show vendor risk, confidence, timeline, frameworks, evidence, gap analysis, generated questions, and citations."
+          />
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function VendorUploadRow({
+  draft,
+  index,
+  updateDraft,
+}: {
+  draft: VendorDraft;
+  index: number;
+  updateDraft: (id: string, patch: Partial<VendorDraft>) => void;
+}) {
+  return (
+    <motion.div
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      className="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-4"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <label className="grid flex-1 gap-2 text-sm font-medium text-slate-700">
+          Vendor {index + 1}
+          <input
+            value={draft.name}
+            onChange={(event) => updateDraft(draft.id, { name: event.target.value })}
+            placeholder="Vendor legal or product name"
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+          />
+        </label>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <FileDrop label="SOC2 PDF" accept="application/pdf" file={draft.soc2} onFile={(file) => updateDraft(draft.id, { soc2: file })} required />
+        <FileDrop label="Questionnaire" accept=".json,.csv" file={draft.questionnaire} onFile={(file) => updateDraft(draft.id, { questionnaire: file })} required />
+        <FileDrop label="Breach history" accept=".txt,.md,.csv,.json" file={draft.breach} onFile={(file) => updateDraft(draft.id, { breach: file })} />
+      </div>
+    </motion.div>
+  );
+}
+
+function FileDrop({
+  accept,
+  file,
+  label,
+  onFile,
+  required = false,
+}: {
+  accept: string;
+  file?: File;
+  label: string;
+  onFile: (file: File) => void;
+  required?: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0];
+    if (selected) onFile(selected);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => inputRef.current?.click()}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        const dropped = event.dataTransfer.files?.[0];
+        if (dropped) onFile(dropped);
+      }}
+      className="group rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-left transition hover:border-blue-300 hover:bg-blue-50/40"
+    >
+      <input ref={inputRef} className="hidden" type="file" accept={accept} onChange={handleChange} />
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition group-hover:bg-blue-100 group-hover:text-blue-700">
+          <UploadCloud className="h-5 w-5" />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-slate-800">
+            {label} {required ? <span className="text-blue-600">*</span> : null}
+          </p>
+          <p className="mt-1 max-w-[180px] truncate text-xs text-slate-500">
+            {file ? `${file.name} · ${formatBytes(file.size)}` : "Drag file or browse"}
+          </p>
         </div>
       </div>
-    </Section>
+    </button>
+  );
+}
+
+function AssessmentLeft({
+  record,
+  records,
+  setActiveId,
+}: {
+  record: AssessmentRecord;
+  records: AssessmentRecord[];
+  setActiveId: (id: string) => void;
+}) {
+  const brief = record.brief;
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-[1.5rem] border border-slate-200 bg-gradient-to-br from-blue-50 to-white p-5">
+        <p className="text-sm font-medium text-blue-700">Vendor</p>
+        <h3 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950">{brief.vendor_name}</h3>
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <MiniMetric label="Risk" value={`${brief.overall_risk_score}/100`} />
+          <MiniMetric label="Confidence" value={`${Math.round(brief.confidence_score * 100)}%`} />
+        </div>
+      </div>
+      <Collapsible title="Timeline" icon={History} defaultOpen>
+        <RiskTimeline records={records.filter((item) => item.brief.vendor_name === brief.vendor_name)} activeId={record.id} setActiveId={setActiveId} />
+      </Collapsible>
+      <Collapsible title="Frameworks" icon={Layers3} defaultOpen>
+        <div className="flex flex-wrap gap-2">
+          {brief.plan.frameworks.map((framework) => (
+            <span key={framework} className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700">
+              {framework}
+            </span>
+          ))}
+        </div>
+      </Collapsible>
+      <Collapsible title="Executive summaries" icon={BookOpenCheck}>
+        <SummaryGrid brief={brief} />
+      </Collapsible>
+    </div>
+  );
+}
+
+function AssessmentRight({
+  copyShareLink,
+  exportRecord,
+  pdfUrl,
+  record,
+  selectedCitation,
+  setSelectedCitation,
+}: {
+  copyShareLink: () => void;
+  exportRecord: (format: "json" | "markdown" | "pdf", record?: AssessmentRecord | null) => void;
+  pdfUrl: string | null;
+  record: AssessmentRecord;
+  selectedCitation: Citation | null;
+  setSelectedCitation: (citation: Citation) => void;
+}) {
+  const brief = record.brief;
+  return (
+    <div className="grid gap-4">
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => exportRecord("pdf", record)} className="btn-secondary"><Download className="h-4 w-4" /> PDF</button>
+        <button onClick={() => exportRecord("markdown", record)} className="btn-secondary"><FileText className="h-4 w-4" /> Markdown</button>
+        <button onClick={() => exportRecord("json", record)} className="btn-secondary"><FileJson className="h-4 w-4" /> JSON</button>
+        <button onClick={copyShareLink} className="btn-secondary"><LinkIcon className="h-4 w-4" /> Share link</button>
+      </div>
+      <Collapsible title="Evidence Viewer" icon={Eye} defaultOpen>
+        <EvidenceExplorer brief={brief} selectedCitation={selectedCitation} setSelectedCitation={setSelectedCitation} />
+        <CitationPreview citation={selectedCitation} pdfUrl={pdfUrl} />
+      </Collapsible>
+      <Collapsible title="Gap Analysis" icon={ShieldAlert} defaultOpen>
+        <div className="grid gap-3">
+          {brief.flagged_gaps.length ? (
+            brief.flagged_gaps.map((gap, index) => (
+              <div key={`${gap.category}-${index}`} className="rounded-2xl border border-red-100 bg-red-50/70 p-4">
+                <p className="text-sm font-semibold capitalize text-red-800">{gap.category.replaceAll("_", " ")}</p>
+                <p className="mt-2 text-sm leading-6 text-red-700">{gap.gap}</p>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-slate-500">No flagged gaps were generated for this assessment.</p>
+          )}
+        </div>
+      </Collapsible>
+      <Collapsible title="Recommendations and generated questions" icon={ClipboardCheck} defaultOpen>
+        <GeneratedQuestions brief={brief} />
+      </Collapsible>
+      <Collapsible title="Confidence breakdown" icon={Sparkles} defaultOpen>
+        <p className="text-sm leading-6 text-slate-600">{brief.confidence_breakdown.formula}</p>
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <MiniMetric label="Direct" value={String(brief.confidence_breakdown.direct_evidence_controls)} />
+          <MiniMetric label="Partial" value={String(brief.confidence_breakdown.partial_evidence_controls)} />
+          <MiniMetric label="Missing" value={String(brief.confidence_breakdown.no_evidence_controls)} />
+        </div>
+      </Collapsible>
+    </div>
+  );
+}
+
+function VendorComparison({ records }: { records: AssessmentRecord[] }) {
+  const compared = records.slice(0, 5);
+  return (
+    <div className="mt-14" id="comparison">
+      <SectionHeader
+        eyebrow="Vendor comparison"
+        title="Compare vendors by evidence, not opinion."
+        body="Upload multiple vendors in one run and compare SOC2, ISO, GDPR, risk, confidence, controls, breaches, and recommendation."
+      />
+      <Card className="mt-8 overflow-hidden p-0">
+        <div className="overflow-x-auto">
+          <table className="min-w-[980px] w-full border-collapse text-sm">
+            <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
+              <tr>
+                {["Vendor", "SOC2", "ISO", "GDPR", "Risk", "Confidence", "Controls", "Breaches", "Recommendation"].map((head) => (
+                  <th key={head} className="border-b border-slate-200 px-5 py-4 font-semibold">{head}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {compared.length ? compared.map((record) => {
+                const brief = record.brief;
+                return (
+                  <tr key={record.id} className="transition hover:bg-blue-50/40">
+                    <td className="border-b border-slate-100 px-5 py-4 font-medium text-slate-900">{brief.vendor_name}</td>
+                    <td className="border-b border-slate-100 px-5 py-4">{yesNo(brief.plan.frameworks.includes("SOC2"))}</td>
+                    <td className="border-b border-slate-100 px-5 py-4">{yesNo(brief.plan.frameworks.includes("ISO27001"))}</td>
+                    <td className="border-b border-slate-100 px-5 py-4">{yesNo(brief.plan.frameworks.includes("GDPR"))}</td>
+                    <td className="border-b border-slate-100 px-5 py-4">{brief.overall_risk_score}/100</td>
+                    <td className="border-b border-slate-100 px-5 py-4">{Math.round(brief.confidence_score * 100)}%</td>
+                    <td className="border-b border-slate-100 px-5 py-4">{brief.categories.length}</td>
+                    <td className="border-b border-slate-100 px-5 py-4">{brief.breach_history.length}</td>
+                    <td className="border-b border-slate-100 px-5 py-4">{recommendation(brief)}</td>
+                  </tr>
+                );
+              }) : (
+                <tr>
+                  <td colSpan={9} className="px-5 py-10 text-center text-slate-500">
+                    Compare vendors after running one or more assessments.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function HistoryTable({
+  exportRecord,
+  filteredRecords,
+  query,
+  setActiveId,
+  setQuery,
+  setStatusFilter,
+  statusFilter,
+}: {
+  exportRecord: (format: "json" | "markdown" | "pdf", record?: AssessmentRecord | null) => void;
+  filteredRecords: AssessmentRecord[];
+  query: string;
+  setActiveId: (id: string) => void;
+  setQuery: (query: string) => void;
+  setStatusFilter: (status: string) => void;
+  statusFilter: string;
+}) {
+  const [sortKey, setSortKey] = useState<"date" | "risk" | "confidence">("date");
+  const [page, setPage] = useState(0);
+  const pageSize = 6;
+  const sorted = [...filteredRecords].sort((a, b) => {
+    if (sortKey === "risk") return b.brief.overall_risk_score - a.brief.overall_risk_score;
+    if (sortKey === "confidence") return b.brief.confidence_score - a.brief.confidence_score;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+  const visible = sorted.slice(page * pageSize, page * pageSize + pageSize);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+
+  return (
+    <div id="history" className="mt-14">
+      <SectionHeader
+        eyebrow="Assessment history"
+        title="Keep previous reports and compare versions."
+        body="History is stored in the browser for the demo, preserving generated briefs, risk movement, exports, and vendor comparison."
+      />
+      <Card className="mt-8 overflow-hidden p-0">
+        <div className="flex flex-col gap-3 border-b border-slate-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-1 items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2">
+            <Search className="h-4 w-4 text-slate-400" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search vendors"
+              className="w-full bg-transparent text-sm outline-none"
+            />
+          </div>
+          <div className="flex gap-2">
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="all">All risk levels</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+            <select value={sortKey} onChange={(event) => setSortKey(event.target.value as typeof sortKey)} className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm">
+              <option value="date">Sort by date</option>
+              <option value="risk">Sort by risk</option>
+              <option value="confidence">Sort by confidence</option>
+            </select>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-[860px] w-full text-left text-sm">
+            <thead className="sticky top-0 bg-slate-50 text-slate-500">
+              <tr>
+                {["Vendor", "Date", "Risk", "Confidence", "Findings", "Actions"].map((head) => (
+                  <th key={head} className="border-b border-slate-200 px-5 py-4 font-semibold">{head}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visible.length ? visible.map((record) => (
+                <tr key={record.id} className="hover:bg-blue-50/40">
+                  <td className="border-b border-slate-100 px-5 py-4 font-medium text-slate-900">{record.brief.vendor_name}</td>
+                  <td className="border-b border-slate-100 px-5 py-4 text-slate-600">{new Date(record.createdAt).toLocaleString()}</td>
+                  <td className="border-b border-slate-100 px-5 py-4"><RiskBadge level={record.brief.overall_risk_level} score={record.brief.overall_risk_score} /></td>
+                  <td className="border-b border-slate-100 px-5 py-4">{Math.round(record.brief.confidence_score * 100)}%</td>
+                  <td className="border-b border-slate-100 px-5 py-4">{record.brief.flagged_gaps.length}</td>
+                  <td className="border-b border-slate-100 px-5 py-4">
+                    <div className="flex gap-2">
+                      <button onClick={() => setActiveId(record.id)} className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium hover:border-blue-200 hover:text-blue-700">Open</button>
+                      <button onClick={() => exportRecord("json", record)} className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium hover:border-blue-200 hover:text-blue-700">JSON</button>
+                    </div>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={6} className="px-5 py-10 text-center text-slate-500">No assessment history matches the current filters.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-200 px-5 py-4 text-sm text-slate-600">
+          <span>Page {page + 1} of {totalPages}</span>
+          <div className="flex gap-2">
+            <button disabled={page === 0} onClick={() => setPage((current) => Math.max(0, current - 1))} className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-40">Previous</button>
+            <button disabled={page >= totalPages - 1} onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))} className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-40">Next</button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function MonitoringAndExports({
+  activeRecord,
+  copyShareLink,
+  exportRecord,
+}: {
+  activeRecord: AssessmentRecord | null;
+  copyShareLink: () => void;
+  exportRecord: (format: "json" | "markdown" | "pdf", record?: AssessmentRecord | null) => void;
+}) {
+  return (
+    <div className="mt-14 grid gap-6 lg:grid-cols-2">
+      <Card>
+        <CardHeader icon={MonitorCheck} title="Continuous monitoring" subtitle="Future-ready vendor monitoring built around saved assessments." />
+        <div className="mt-6 grid gap-3">
+          {["Monitor vendor risk over time", "Detect improvements and regressions", "Reassess when new SOC2 or breach evidence arrives"].map((item) => (
+            <div key={item} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              {item}
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card>
+        <CardHeader icon={FileArchive} title="Export center" subtitle="Export the active assessment for stakeholders." />
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <button disabled={!activeRecord} onClick={() => exportRecord("pdf")} className="export-button"><Download className="h-4 w-4" /> Beautiful PDF</button>
+          <button disabled={!activeRecord} onClick={() => exportRecord("markdown")} className="export-button"><FileText className="h-4 w-4" /> Markdown</button>
+          <button disabled={!activeRecord} onClick={() => exportRecord("json")} className="export-button"><FileJson className="h-4 w-4" /> JSON</button>
+          <button disabled={!activeRecord} onClick={copyShareLink} className="export-button"><LinkIcon className="h-4 w-4" /> Shareable link</button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function FrameworkExplorer({ frameworks, compact = false }: { frameworks: FrameworkControl[]; compact?: boolean }) {
+  const [active, setActive] = useState("SOC2");
+  const frameworkNames = Array.from(new Set(frameworks.map((control) => control.framework)));
+  const controls = frameworks.filter((control) => control.framework === active);
+
+  return (
+    <div id="frameworks" className={compact ? "mt-10" : "mt-14"}>
+      {!compact ? (
+        <SectionHeader
+          eyebrow="Framework explorer"
+          title="Explore controls, coverage, and mappings."
+          body="The frontend reads framework mappings from the existing registry endpoint when the backend is available, with a local mirror for static rendering."
+        />
+      ) : null}
+      <Card className="mt-8">
+        <div className="flex flex-wrap gap-2">
+          {frameworkNames.map((framework) => (
+            <button
+              key={framework}
+              onClick={() => setActive(framework)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${active === framework ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" : "border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"}`}
+            >
+              {framework}
+            </button>
+          ))}
+        </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {controls.map((control) => (
+            <motion.div key={`${control.framework}-${control.id}`} whileHover={{ y: -4 }} className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-5">
+              <div className="flex items-center justify-between">
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm">{control.id}</span>
+                <span className="text-xs capitalize text-slate-500">{control.category.replaceAll("_", " ")}</span>
+              </div>
+              <h3 className="mt-5 text-lg font-semibold text-slate-950">{control.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{control.description}</p>
+            </motion.div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function ProblemFlow() {
+  const items = ["Download SOC2", "Read evidence", "Compare questionnaire", "Search breach history", "Email follow-ups", "Approve manually"];
+  return (
+    <Card>
+      <CardHeader icon={Clock3} title="Problem" subtitle="Manual review is slow because every source must be reconciled by hand." />
+      <div className="mt-6 grid gap-3">
+        {items.map((item, index) => (
+          <motion.div key={item} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.05 }}>
+            <span className="text-sm font-medium text-slate-700">{item}</span>
+            <span className="text-xs text-slate-400">0{index + 1}</span>
+          </motion.div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function ArchitectureFlow() {
+  const nodes = ["Upload", "Parser", "Registry", "Planner", "Retrieve", "Tool call", "Score", "Brief"];
+  return (
+    <Card id="architecture">
+      <CardHeader icon={Network} title="Architecture" subtitle="Composable services preserve traceability from document upload to final report." />
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {nodes.map((node, index) => (
+          <motion.div key={node} className="relative rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" whileHover={{ y: -3 }}>
+            <p className="text-xs font-semibold text-blue-600">0{index + 1}</p>
+            <p className="mt-4 font-semibold text-slate-900">{node}</p>
+            {index < nodes.length - 1 ? <ChevronRight className="absolute right-3 top-3 h-4 w-4 text-slate-300" /> : null}
+          </motion.div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
 function TracePanel({ trace, loading }: { trace: TraceEvent[]; loading: boolean }) {
   return (
-    <div className="glass rounded-[2rem] p-6">
+    <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-stone-500">Live reasoning trace</p>
-          <h3 className="mt-2 text-2xl font-medium tracking-[-0.04em] text-stone-100">Agent thinking</h3>
-        </div>
-        <div className="flex items-center gap-2 rounded-full border border-white/10 px-3 py-1 text-xs text-stone-400">
-          <span className={`h-2 w-2 rounded-full ${loading ? "animate-pulse bg-stone-100" : "bg-stone-600"}`} />
+        <p className="text-sm font-semibold text-slate-900">Live reasoning trace</p>
+        <span className="flex items-center gap-2 text-xs text-slate-500">
+          <span className={`h-2 w-2 rounded-full ${loading ? "animate-pulse bg-blue-600" : "bg-slate-300"}`} />
           {loading ? "Streaming" : "Ready"}
-        </div>
+        </span>
       </div>
-      <div className="mt-5 max-h-[320px] overflow-hidden rounded-3xl border border-white/10 bg-black/25 p-4">
-        {(trace.length ? trace : [{ step: "idle", message: "Upload documents to stream planning, retrieval, cross-checking, breach lookup, and deterministic scoring." }]).map((event, index) => (
-          <motion.div
-            key={`${event.step}-${event.message}-${index}`}
-            className="mb-3 flex gap-3 text-sm last:mb-0"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-stone-300" />
+      <div className="mt-4 max-h-56 overflow-auto pr-2">
+        {(trace.length ? trace : [{ step: "ready", message: "Upload one or more vendors to stream planning, retrieval, breach lookup, deterministic scoring, and output." }]).map((event, index) => (
+          <motion.div key={`${event.step}-${index}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mb-3 flex gap-3 last:mb-0">
+            <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-600" />
             <div>
-              <p className="font-medium capitalize text-stone-300">{event.step.replace("_", " ")}</p>
-              <p className="text-stone-500">{event.message}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{event.step.replace("_", " ")}</p>
+              <p className="mt-1 text-sm leading-6 text-slate-700">{event.message}</p>
             </div>
           </motion.div>
         ))}
@@ -566,423 +1094,379 @@ function TracePanel({ trace, loading }: { trace: TraceEvent[]; loading: boolean 
   );
 }
 
-function RiskBriefPanel({
+function EvidenceExplorer({
   brief,
-  onCitationClick,
   selectedCitation,
+  setSelectedCitation,
 }: {
   brief: RiskBrief;
-  onCitationClick: (citation: Citation) => void;
   selectedCitation: Citation | null;
+  setSelectedCitation: (citation: Citation) => void;
 }) {
   return (
-    <div className="glass rounded-[2rem] p-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-stone-500">{brief.vendor_name}</p>
-          <h3 className="mt-2 text-3xl font-medium tracking-[-0.05em] text-stone-100">Structured risk brief</h3>
-        </div>
-        <div className="rounded-full border border-white/10 px-4 py-2 text-sm text-stone-300">
-          {brief.overall_risk_level} risk
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-3 md:grid-cols-3">
-        <Metric label="Overall risk" value={`${brief.overall_risk_score}/100`} />
-        <Metric label="Confidence" value={`${Math.round(brief.confidence_score * 100)}%`} />
-        <Metric label="Missing controls" value={`${brief.confidence_breakdown.no_evidence_controls}`} />
-      </div>
-
-      <div className="mt-5 rounded-3xl border border-white/10 bg-black/20 p-4">
-        <p className="text-sm font-medium text-stone-200">Confidence breakdown</p>
-        <p className="mt-2 text-sm leading-6 text-stone-400">{brief.confidence_breakdown.formula}</p>
-        <div className="mt-4 grid gap-2 md:grid-cols-3">
-          <SmallStat label="Direct" value={brief.confidence_breakdown.direct_evidence_controls} />
-          <SmallStat label="Partial" value={brief.confidence_breakdown.partial_evidence_controls} />
-          <SmallStat label="No evidence" value={brief.confidence_breakdown.no_evidence_controls} />
-        </div>
-      </div>
-
-      <div className="mt-5 grid gap-4">
-        {brief.categories.slice(0, 4).map((finding) => (
-          <div key={finding.category} className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <h4 className="text-lg font-medium capitalize tracking-[-0.03em] text-stone-100">{finding.category.replaceAll("_", " ")}</h4>
-              <span className="text-sm text-stone-500">Score {finding.score}/100 · {finding.status}</span>
-            </div>
-            <p className="mt-2 text-sm leading-6 text-stone-400">{finding.rationale}</p>
-            {finding.gaps.slice(0, 2).map((gap) => (
-              <p key={gap} className="mt-2 text-sm text-red-300">Gap: {gap}</p>
-            ))}
-            <div className="mt-3 flex flex-wrap gap-2">
-              {finding.citations.slice(0, 3).map((citation, index) => {
-                const active = selectedCitation?.source === citation.source && selectedCitation.location === citation.location;
-                return (
-                  <button
-                    key={`${citation.source}-${citation.location}-${index}`}
-                    type="button"
-                    onClick={() => onCitationClick(citation)}
-                    className={`rounded-full border px-3 py-1 text-xs transition ${active ? "border-stone-100 bg-stone-100 text-stone-950" : "border-white/10 bg-black/20 text-stone-400 hover:border-white/25 hover:text-stone-100"}`}
-                  >
-                    {citation.source} · {citation.location}
-                  </button>
-                );
-              })}
-            </div>
+    <div className="grid gap-3">
+      {brief.categories.map((finding) => (
+        <div key={finding.category} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex items-center justify-between">
+            <p className="font-semibold capitalize text-slate-900">{finding.category.replaceAll("_", " ")}</p>
+            <RiskBadge level={finding.status === "gap" ? "high" : finding.status === "review" ? "medium" : "low"} score={finding.score} />
           </div>
-        ))}
-      </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {finding.citations.length ? finding.citations.slice(0, 4).map((citation, index) => {
+              const active = selectedCitation?.source === citation.source && selectedCitation.location === citation.location;
+              return (
+                <button
+                  key={`${citation.source}-${citation.location}-${index}`}
+                  onClick={() => setSelectedCitation(citation)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${active ? "bg-blue-600 text-white" : "border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"}`}
+                >
+                  {citation.source} · {citation.location}
+                </button>
+              );
+            }) : <span className="text-sm text-slate-500">No citations for this category.</span>}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-function CitationSourcePanel({ citation, pdfUrl }: { citation: Citation | null; pdfUrl: string | null }) {
-  const page = useMemo(() => {
-    if (!citation) return null;
-    const match = citation.location.match(/\d+/);
-    return match ? match[0] : null;
-  }, [citation]);
-  const pdfSrc = pdfUrl && page ? `${pdfUrl}#page=${page}` : pdfUrl;
-
+function CitationPreview({ citation, pdfUrl }: { citation: Citation | null; pdfUrl: string | null }) {
+  const page = citation?.location.match(/\d+/)?.[0];
+  const src = pdfUrl && page ? `${pdfUrl}#page=${page}` : pdfUrl;
   return (
-    <div className="glass rounded-[2rem] p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-stone-500">Citation highlighting</p>
-          <h3 className="mt-2 text-2xl font-medium tracking-[-0.04em] text-stone-100">Source evidence</h3>
-        </div>
-        <FileSearch className="h-5 w-5 text-stone-500" />
-      </div>
+    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+      <p className="text-sm font-semibold text-slate-900">Citation preview</p>
       {citation ? (
-        <div className="mt-5 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-3xl border border-white/10 bg-black/25 p-4">
-            <p className="text-sm text-stone-300">{citation.source} · {citation.location}</p>
-            <p className="mt-3 rounded-2xl border border-white/10 bg-stone-100/[0.06] p-4 text-sm leading-6 text-stone-300">
-              {citation.quote}
-            </p>
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <div className="rounded-2xl bg-blue-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">{citation.source} · {citation.location}</p>
+            <p className="mt-3 text-sm leading-6 text-slate-700">{citation.quote}</p>
           </div>
-          <div className="min-h-[260px] overflow-hidden rounded-3xl border border-white/10 bg-black/25">
-            {pdfSrc ? (
-              <iframe title="SOC2 citation preview" src={pdfSrc} className="h-[320px] w-full opacity-80" />
-            ) : (
-              <div className="flex h-full min-h-[260px] items-center justify-center p-6 text-center text-sm text-stone-500">
-                Upload a SOC2 PDF, then click a citation to jump to its page.
-              </div>
-            )}
+          <div className="min-h-52 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+            {src ? <iframe title="Evidence PDF preview" src={src} className="h-64 w-full" /> : <div className="flex h-52 items-center justify-center p-6 text-center text-sm text-slate-500">Upload a SOC2 PDF in this session to jump to cited pages.</div>}
           </div>
         </div>
       ) : (
-        <p className="mt-5 text-stone-500">Click a generated citation to view its excerpt and jump to the uploaded PDF page.</p>
+        <p className="mt-2 text-sm text-slate-500">Select a citation to view the exact evidence excerpt and PDF page.</p>
       )}
     </div>
   );
 }
 
-function ExampleAssessment() {
+function GeneratedQuestions({ brief }: { brief: RiskBrief }) {
+  const questions = [
+    ...brief.follow_up_questions,
+    ...brief.flagged_gaps.slice(0, 3).map((gap) => `What remediation evidence can you provide for ${gap.category.replaceAll("_", " ")}?`),
+  ];
   return (
-    <Section>
-      <SectionHeader eyebrow="Example assessment" title="The gap is obvious because the evidence is next to the answer." body="The agent compares what the auditor tested against what the vendor says today, then explains the discrepancy with citations." />
-      <div className="mt-14 grid gap-6 lg:grid-cols-2">
-        <div className="glass rounded-[2rem] p-6">
-          <p className="text-sm uppercase tracking-[0.24em] text-stone-500">Source material</p>
-          <SourceExcerpt title="SOC2 excerpt" body="CC6 logical access controls were suitably designed and operated effectively. No exceptions were noted during the review period." citation="SOC2 Section CC6 · page 12" />
-          <SourceExcerpt title="Questionnaire answer" body="Administrator MFA is planned for the next quarter. Current enforcement is limited to production break-glass accounts." citation="Questionnaire · row 4" />
+    <div className="grid gap-3">
+      {questions.map((question) => (
+        <div key={question} className="flex gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+          <ClipboardCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+          {question}
         </div>
-        <div className="glass rounded-[2rem] p-6">
-          <p className="text-sm uppercase tracking-[0.24em] text-stone-500">Generated risk brief</p>
-          <div className="mt-5 grid gap-3">
-            <Detail label="Risk" value="Medium: access-control discrepancy" />
-            <Detail label="Confidence" value="High: SOC2 + questionnaire evidence matched" />
-            <Detail label="Evidence" value="SOC2 says effective; questionnaire says MFA is planned." />
-            <Detail label="Gap" value="Current administrative MFA enforcement is incomplete." />
-            <Detail label="Recommendation" value="Request MFA enforcement proof and owner attestation." />
-            <Detail label="Citations" value="SOC2 page 12, questionnaire row 4" />
+      ))}
+    </div>
+  );
+}
+
+function SummaryGrid({ brief }: { brief: RiskBrief }) {
+  const summaries = [
+    ["Technical Summary", `${brief.categories.length} control categories assessed. ${brief.flagged_gaps.length} gaps require validation.`],
+    ["Executive Summary", `${brief.vendor_name} is currently ${brief.overall_risk_level} risk with ${Math.round(brief.confidence_score * 100)}% confidence.`],
+    ["Legal Summary", brief.plan.frameworks.includes("GDPR") ? "GDPR obligations were included in the review plan." : "No GDPR-specific evidence was selected by the current plan."],
+    ["Procurement Summary", recommendation(brief)],
+  ];
+  return (
+    <div className="grid gap-3">
+      {summaries.map(([title, body]) => (
+        <div key={title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p className="font-semibold text-slate-900">{title}</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">{body}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AssessmentTrend({ records }: { records: AssessmentRecord[] }) {
+  const data = records.slice(0, 8).reverse();
+  if (!data.length) return <ChartEmpty message="Run assessments to populate trend data." />;
+  const points = data.map((record, index) => {
+    const x = data.length === 1 ? 50 : (index / (data.length - 1)) * 100;
+    const y = 100 - record.brief.overall_risk_score;
+    return `${x},${y}`;
+  }).join(" ");
+
+  return (
+    <div className="mt-6 h-64">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+        <defs>
+          <linearGradient id="trendFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#2563EB" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polyline points={points} fill="none" stroke="#2563EB" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+        <polygon points={`0,100 ${points} 100,100`} fill="url(#trendFill)" />
+      </svg>
+    </div>
+  );
+}
+
+function RiskDistribution({ records }: { records: AssessmentRecord[] }) {
+  const counts = ["low", "medium", "high"].map((level) => ({
+    level,
+    count: records.filter((record) => record.brief.overall_risk_level === level).length,
+  }));
+  const max = Math.max(1, ...counts.map((item) => item.count));
+  return (
+    <div className="mt-6 grid gap-4">
+      {counts.map((item) => (
+        <div key={item.level}>
+          <div className="mb-2 flex justify-between text-sm text-slate-600">
+            <span className="capitalize">{item.level}</span>
+            <span>{item.count}</span>
+          </div>
+          <div className="h-3 rounded-full bg-slate-100">
+            <motion.div
+              initial={{ width: 0 }}
+              whileInView={{ width: `${(item.count / max) * 100}%` }}
+              viewport={{ once: true }}
+              className={`h-full rounded-full ${item.level === "low" ? "bg-green-500" : item.level === "medium" ? "bg-amber-500" : "bg-red-600"}`}
+            />
           </div>
         </div>
-      </div>
-    </Section>
+      ))}
+    </div>
   );
 }
 
-function DeterministicScoring() {
+function RiskTimeline({
+  activeId,
+  records,
+  setActiveId,
+}: {
+  activeId: string;
+  records: AssessmentRecord[];
+  setActiveId: (id: string) => void;
+}) {
+  if (!records.length) return <p className="text-sm text-slate-500">No historical assessments for this vendor yet.</p>;
   return (
-    <Section>
-      <SectionHeader eyebrow="Why deterministic scoring matters" title="AI reads the documents. Python decides the score." body="The model is used for understanding and planning. Risk scores are computed by explicit rules so security teams can audit every decision." />
-      <div className="mt-14 grid gap-6 md:grid-cols-2">
-        <Comparison title="Traditional AI" icon={ShieldQuestion} items={["Hallucinates unsupported risk levels", "Changes answers across runs", "Hides why a score moved", "Hard to defend in an audit"]} muted />
-        <Comparison title="Vendor Risk Agent" icon={ShieldCheck} items={["Evidence-backed findings", "Deterministic scoring logic", "Per-control citations", "Auditable confidence breakdown"]} />
-      </div>
-    </Section>
-  );
-}
-
-function BuiltForEnterprise() {
-  return (
-    <Section>
-      <SectionHeader eyebrow="Built for enterprise" title="One review surface for everyone in the approval chain." body="Security, compliance, procurement, legal, and vendor management teams see the same grounded decision record." />
-      <div className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {enterpriseAudiences.map((audience, index) => {
-          const Icon = audience.icon;
-          return (
-            <motion.div key={audience.title} className="glass rounded-[1.75rem] p-5" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: index * 0.05 }}>
-              <Icon className="h-5 w-5 text-stone-400" />
-              <h3 className="mt-8 text-xl font-medium tracking-[-0.04em] text-stone-100">{audience.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-stone-500">{audience.body}</p>
-            </motion.div>
-          );
-        })}
-      </div>
-    </Section>
-  );
-}
-
-function Architecture() {
-  return (
-    <Section>
-      <SectionHeader eyebrow="Architecture" title="Built like a system, not a prompt." body="Each component has one job and every handoff preserves traceability from upload to report." />
-      <div className="glass mt-14 rounded-[2.5rem] p-6">
-        <div className="grid gap-4 md:grid-cols-4">
-          {architecture.map((node, index) => (
-            <motion.div key={node} className="relative rounded-3xl border border-white/10 bg-black/25 p-5" initial={{ opacity: 0, scale: 0.96 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: index * 0.05 }}>
-              <p className="text-xs text-stone-600">0{index + 1}</p>
-              <h3 className="mt-6 text-xl font-medium tracking-[-0.04em] text-stone-100">{node}</h3>
-              {index < architecture.length - 1 ? <ChevronRight className="absolute right-4 top-4 h-4 w-4 text-stone-600" /> : null}
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function OpenSource() {
-  const stack = ["Python", "FastAPI", "Next.js", "Vultr", "SOC2", "ISO27001", "GDPR"];
-  return (
-    <Section>
-      <div className="glass overflow-hidden rounded-[2.5rem] p-8 md:p-10">
-        <div className="grid gap-10 lg:grid-cols-[1fr_0.8fr]">
-          <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-stone-500">Open source</p>
-            <h2 className="mt-4 max-w-3xl text-5xl font-semibold tracking-[-0.065em] text-stone-50 md:text-7xl">
-              Inspect the agent. Run the demo. Read the rules.
-            </h2>
-            <a href={repoUrl} className="mt-8 inline-flex items-center rounded-full bg-stone-100 px-5 py-3 text-sm font-medium text-stone-950">
-              <GitBranch className="mr-2 h-4 w-4" /> Repository
-            </a>
-          </div>
-          <div className="rounded-[2rem] border border-white/10 bg-black/25 p-5">
-            <Detail label="Repository" value="github.com/imranrkhan13/vendor" />
-            <Detail label="License" value="Hackathon project repository" />
-            <div className="mt-5 flex flex-wrap gap-2">
-              {stack.map((item) => (
-                <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-stone-400">{item}</span>
-              ))}
+    <div className="grid gap-3">
+      {records.map((record, index) => {
+        const previous = records[index + 1];
+        const delta = previous ? record.brief.overall_risk_score - previous.brief.overall_risk_score : 0;
+        return (
+          <button
+            key={record.id}
+            onClick={() => setActiveId(record.id)}
+            className={`rounded-2xl border p-4 text-left transition ${record.id === activeId ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-slate-50 hover:border-blue-200"}`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-900">{new Date(record.createdAt).toLocaleString()}</span>
+              <span className={`text-xs font-semibold ${delta > 0 ? "text-red-600" : delta < 0 ? "text-green-600" : "text-slate-500"}`}>
+                {delta > 0 ? `Regression +${delta}` : delta < 0 ? `Improvement ${delta}` : "Baseline"}
+              </span>
             </div>
-          </div>
-        </div>
-      </div>
-    </Section>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
-function FinalCta() {
+function Collapsible({ children, defaultOpen = false, icon: Icon, title }: { children: ReactNode; defaultOpen?: boolean; icon: LucideIcon; title: string }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <Section className="pb-10">
-      <div className="py-24 text-center">
-        <p className="text-sm uppercase tracking-[0.24em] text-stone-500">Final decision surface</p>
-        <h2 className="mx-auto mt-6 max-w-5xl text-6xl font-semibold tracking-[-0.075em] text-stone-50 md:text-8xl">
-          Know the risk before you trust the vendor.
+    <div className="rounded-[1.25rem] border border-slate-200 bg-white">
+      <button onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left">
+        <span className="flex items-center gap-3 font-semibold text-slate-900"><Icon className="h-4 w-4 text-blue-600" /> {title}</span>
+        <ChevronDown className={`h-4 w-4 text-slate-400 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open ? <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="border-t border-slate-100 px-4 py-4">{children}</motion.div> : null}
+    </div>
+  );
+}
+
+function CTA() {
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-24 md:px-8">
+      <div className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-blue-600 to-indigo-600 p-10 text-white shadow-2xl shadow-blue-600/20 md:p-14">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-100">Ready for enterprise review queues</p>
+        <h2 className="mt-5 max-w-4xl text-5xl font-semibold tracking-[-0.06em] md:text-7xl">
+          Know the vendor risk before the contract is signed.
         </h2>
-        <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-          <a href="#demo" className="inline-flex items-center justify-center rounded-full bg-stone-100 px-6 py-3 text-sm font-medium text-stone-950">Try the demo</a>
-          <a href={repoUrl} className="inline-flex items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm font-medium text-stone-200">View the source</a>
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <a href="#assessment" className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-blue-700 shadow-sm">Start assessment <ArrowRight className="h-4 w-4" /></a>
+          <a href={repoUrl} className="inline-flex items-center justify-center gap-2 rounded-full border border-white/25 px-5 py-3 text-sm font-semibold text-white">View source <ExternalLink className="h-4 w-4" /></a>
         </div>
       </div>
-      <footer className="border-t border-white/10 pt-8">
-        <p className="text-center text-[12vw] font-semibold leading-none tracking-[-0.1em] text-white/[0.06]">
-          Vendor Risk Assessment Agent
-        </p>
-      </footer>
-    </Section>
-  );
-}
-
-function Section({ children, className = "", id }: { children: ReactNode; className?: string; id?: string }) {
-  return (
-    <section id={id} className={`relative z-10 mx-auto w-full max-w-7xl px-5 py-24 md:px-8 ${className}`}>
-      {children}
     </section>
   );
 }
 
-function SectionHeader({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) {
+function Footer() {
   return (
-    <motion.div className="max-w-4xl" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-120px" }} variants={fadeUp} transition={{ duration: 0.7 }}>
+    <footer className="border-t border-slate-200 bg-white">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-8 text-sm text-slate-500 md:flex-row md:items-center md:justify-between md:px-8">
+        <p className="font-semibold text-slate-900">Vendor Risk Assessment Agent</p>
+        <p>Built for SOC2, ISO 27001, GDPR, deterministic scoring, and evidence-backed decisions.</p>
+      </div>
+    </footer>
+  );
+}
+
+function SectionHeader({ body, eyebrow, title }: { body: string; eyebrow: string; title: string }) {
+  return (
+    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} className="max-w-4xl">
       <Pill>{eyebrow}</Pill>
-      <h2 className="mt-6 text-5xl font-semibold tracking-[-0.065em] text-stone-50 md:text-7xl">{title}</h2>
-      <p className="mt-6 max-w-3xl text-lg leading-8 text-stone-400">{body}</p>
+      <h2 className="mt-5 text-4xl font-semibold tracking-[-0.05em] text-slate-950 md:text-6xl">{title}</h2>
+      <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">{body}</p>
     </motion.div>
   );
 }
 
-function Pill({ children }: { children: ReactNode }) {
+function Pill({ children, icon: Icon }: { children: ReactNode; icon?: LucideIcon }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs uppercase tracking-[0.22em] text-stone-400 backdrop-blur-xl">
-      <span className="h-1.5 w-1.5 rounded-full bg-stone-300" />
+    <span className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">
+      {Icon ? <Icon className="h-3.5 w-3.5" /> : <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />}
       {children}
     </span>
   );
 }
 
-function AnimatedMetric({ label, value, suffix }: { label: string; value: string; suffix: string }) {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
-      <p className="text-xs uppercase tracking-[0.2em] text-stone-500">{label}</p>
-      <div className="mt-3 text-4xl font-semibold tracking-[-0.06em] text-stone-50">
-        <motion.span animate={{ opacity: [0.55, 1, 0.75] }} transition={{ duration: 2, repeat: Infinity }}>{value}</motion.span>
-        <span className="text-xl text-stone-500">{suffix}</span>
-      </div>
-    </div>
-  );
+function Card({ children, className = "", id }: { children: ReactNode; className?: string; id?: string }) {
+  return <div id={id} className={`rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm shadow-slate-200/70 ${className}`}>{children}</div>;
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function AnimatedCard({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-      <p className="text-xs uppercase tracking-[0.2em] text-stone-600">{label}</p>
-      <p className="mt-2 text-sm leading-6 text-stone-300">{value}</p>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <label className="grid gap-2 text-sm font-medium text-stone-300">
-      {label}
+    <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay }} whileHover={{ y: -4 }} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/70">
       {children}
-    </label>
-  );
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-black/25 p-4">
-      <p className="text-xs uppercase tracking-[0.18em] text-stone-600">{label}</p>
-      <p className="mt-2 text-2xl font-medium tracking-[-0.04em] text-stone-100">{value}</p>
-    </div>
-  );
-}
-
-function SmallStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-      <p className="text-xs text-stone-500">{label}</p>
-      <p className="mt-1 text-xl text-stone-100">{value}</p>
-    </div>
-  );
-}
-
-function PreviewPanel({ title, value, icon }: { title: string; value: string; icon: LucideIcon }) {
-  const Icon = icon;
-  return (
-    <motion.div className="rounded-[2rem] border border-white/10 bg-black/25 p-5" animate={{ y: [0, -6, 0] }} transition={{ duration: 5, repeat: Infinity }}>
-      <Icon className="h-5 w-5 text-stone-500" />
-      <p className="mt-10 text-sm text-stone-500">{title}</p>
-      <p className="mt-2 text-4xl font-semibold tracking-[-0.06em] text-stone-100">{value}</p>
     </motion.div>
   );
 }
 
-function PreviewList({ title, items }: { title: string; items: string[] }) {
+function CardHeader({ icon: Icon, subtitle, title }: { icon: LucideIcon; subtitle: string; title: string }) {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-black/25 p-5">
-      <h3 className="text-lg font-medium text-stone-100">{title}</h3>
-      <div className="mt-4 grid gap-3">
-        {items.map((item) => (
-          <div key={item} className="flex items-start gap-3 text-sm text-stone-400">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 text-stone-500" />
-            {item}
-          </div>
-        ))}
+    <div className="flex items-start gap-4">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+        <Icon className="h-5 w-5" />
+      </span>
+      <div>
+        <h3 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">{title}</h3>
+        <p className="mt-1 text-sm leading-6 text-slate-500">{subtitle}</p>
       </div>
     </div>
   );
 }
 
-function FrameworkBars() {
-  const bars = [
-    ["SOC2", "82%"],
-    ["ISO", "64%"],
-    ["GDPR", "51%"],
-  ];
+function MetricCard({ icon: Icon, title, tone, value }: { icon: LucideIcon; title: string; tone: "blue" | "amber" | "red" | "indigo" | "green"; value: string }) {
+  const tones = {
+    blue: "bg-blue-50 text-blue-700",
+    amber: "bg-amber-50 text-amber-700",
+    red: "bg-red-50 text-red-700",
+    indigo: "bg-indigo-50 text-indigo-700",
+    green: "bg-green-50 text-green-700",
+  };
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-black/25 p-5">
-      <h3 className="text-lg font-medium text-stone-100">Framework Coverage</h3>
-      <div className="mt-5 grid gap-4">
-        {bars.map(([label, width]) => (
-          <div key={label}>
-            <div className="mb-2 flex justify-between text-sm text-stone-500"><span>{label}</span><span>{width}</span></div>
-            <div className="h-1.5 rounded-full bg-white/10">
-              <motion.div className="h-full rounded-full bg-stone-200" initial={{ width: 0 }} whileInView={{ width }} viewport={{ once: true }} transition={{ duration: 1 }} />
-            </div>
-          </div>
-        ))}
+    <motion.div whileHover={{ y: -4 }} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm shadow-slate-200/70">
+      <span className={`flex h-10 w-10 items-center justify-center rounded-2xl ${tones[tone]}`}><Icon className="h-5 w-5" /></span>
+      <p className="mt-6 text-sm text-slate-500">{title}</p>
+      <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950">{value}</p>
+    </motion.div>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400">{label}</p>
+      <p className="mt-2 text-xl font-semibold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function ProgressBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="mb-2 flex justify-between text-sm text-slate-600"><span>{label}</span><span>{value}%</span></div>
+      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+        <motion.div className="h-full rounded-full bg-blue-600" initial={{ width: 0 }} animate={{ width: `${value}%` }} />
       </div>
     </div>
   );
 }
 
-function RiskTimeline() {
+function EmptyState({ body, icon: Icon, title }: { body: string; icon: LucideIcon; title: string }) {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-black/25 p-5">
-      <h3 className="text-lg font-medium text-stone-100">Risk Timeline</h3>
-      <div className="mt-5 grid gap-3">
-        {["Upload", "Gap detected", "Decision ready"].map((item) => (
-          <div key={item} className="flex items-center gap-3 text-sm text-stone-400">
-            <TimerReset className="h-4 w-4 text-stone-600" />
-            {item}
-          </div>
-        ))}
-      </div>
+    <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-blue-700 shadow-sm"><Icon className="h-6 w-6" /></span>
+      <h3 className="mt-4 text-xl font-semibold text-slate-950">{title}</h3>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">{body}</p>
     </div>
   );
 }
 
-function EvidenceViewerMini() {
-  return (
-    <div className="rounded-[2rem] border border-white/10 bg-black/25 p-5">
-      <h3 className="text-lg font-medium text-stone-100">Evidence Viewer</h3>
-      <p className="mt-5 rounded-2xl bg-stone-100/[0.06] p-4 text-sm leading-6 text-stone-400">
-        "No exceptions noted" · SOC2 page 12
-      </p>
-    </div>
-  );
+function ChartEmpty({ message }: { message: string }) {
+  return <div className="mt-6 flex h-64 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500">{message}</div>;
 }
 
-function SourceExcerpt({ title, body, citation }: { title: string; body: string; citation: string }) {
-  return (
-    <div className="mt-5 rounded-3xl border border-white/10 bg-black/25 p-5">
-      <p className="text-sm font-medium text-stone-200">{title}</p>
-      <p className="mt-3 text-sm leading-6 text-stone-400">{body}</p>
-      <p className="mt-4 text-xs uppercase tracking-[0.18em] text-stone-600">{citation}</p>
-    </div>
-  );
+function RiskBadge({ level, score }: { level: string; score: number }) {
+  const classes = level === "high" ? "bg-red-50 text-red-700 border-red-100" : level === "medium" ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-green-50 text-green-700 border-green-100";
+  return <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold capitalize ${classes}`}>{level} · {score}</span>;
 }
 
-function Comparison({ title, icon, items, muted = false }: { title: string; icon: LucideIcon; items: string[]; muted?: boolean }) {
-  const Icon = icon;
-  return (
-    <div className={`rounded-[2rem] border p-6 ${muted ? "border-white/10 bg-white/[0.025]" : "glass"}`}>
-      <Icon className="h-6 w-6 text-stone-400" />
-      <h3 className="mt-8 text-3xl font-medium tracking-[-0.05em] text-stone-100">{title}</h3>
-      <div className="mt-6 grid gap-3">
-        {items.map((item) => (
-          <div key={item} className="flex items-center gap-3 text-stone-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-stone-500" />
-            {item}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function yesNo(value: boolean) {
+  return value ? <span className="text-green-700">Yes</span> : <span className="text-slate-400">No</span>;
+}
+
+function buildMetrics(records: AssessmentRecord[]) {
+  const assessments = records.length;
+  const averageRisk = assessments ? Math.round(records.reduce((sum, record) => sum + record.brief.overall_risk_score, 0) / assessments) : 0;
+  const criticalFindings = records.reduce((sum, record) => sum + record.brief.flagged_gaps.length, 0);
+  const frameworkCoverage = assessments
+    ? Math.round(records.reduce((sum, record) => sum + record.brief.plan.frameworks.length, 0) / (assessments * 3) * 100)
+    : 0;
+  const confidence = assessments ? Math.round(records.reduce((sum, record) => sum + record.brief.confidence_score, 0) / assessments * 100) : 0;
+  return { assessments, averageRisk, confidence, criticalFindings, frameworkCoverage };
+}
+
+function recommendation(brief: RiskBrief) {
+  if (brief.overall_risk_score > 65) return "Escalate before approval";
+  if (brief.flagged_gaps.length) return "Approve after targeted follow-up";
+  return "Proceed with standard vendor controls";
+}
+
+function toMarkdown(brief: RiskBrief) {
+  return `# Vendor Risk Brief: ${brief.vendor_name}
+
+## Executive Summary
+${brief.vendor_name} is ${brief.overall_risk_level} risk with an overall score of ${brief.overall_risk_score}/100 and ${Math.round(brief.confidence_score * 100)}% confidence.
+
+## Confidence Breakdown
+${brief.confidence_breakdown.formula}
+
+## Frameworks
+${brief.plan.frameworks.map((framework) => `- ${framework}`).join("\n")}
+
+## Findings
+${brief.categories.map((finding) => `### ${finding.category}
+- Status: ${finding.status}
+- Score: ${finding.score}/100
+- Rationale: ${finding.rationale}
+- Gaps: ${finding.gaps.join("; ") || "No gaps detected"}
+`).join("\n")}
+
+## Follow-up Questions
+${brief.follow_up_questions.map((question) => `- ${question}`).join("\n")}
+`;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
