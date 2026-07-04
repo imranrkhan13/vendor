@@ -1,0 +1,85 @@
+{
+  "SOC2": [
+    {
+      "id": "CC6",
+      "category": "access_control",
+      "title": "Logical and Physical Access Controls",
+      "description": "Controls restrict logical and physical access to systems, data, and facilities.",
+      "keywords": ["access", "authentication", "authorization", "mfa", "privileged", "physical"]
+    },
+    {
+      "id": "CC7",
+      "category": "security_monitoring",
+      "title": "System Operations and Monitoring",
+      "description": "Controls monitor system components, detect anomalies, and respond to security events.",
+      "keywords": ["monitoring", "logging", "incident", "detection", "alert", "response"]
+    },
+    {
+      "id": "CC8",
+      "category": "change_management",
+      "title": "Change Management",
+      "description": "Controls authorize, test, approve, and track system changes.",
+      "keywords": ["change", "deployment", "approval", "testing", "release"]
+    },
+    {
+      "id": "A1",
+      "category": "availability",
+      "title": "Availability",
+      "description": "Controls support availability commitments through backups, recovery, and resilience.",
+      "keywords": ["availability", "backup", "recovery", "resilience", "disaster"]
+    }
+  ],
+  "ISO27001": [
+    {
+      "id": "A.5",
+      "category": "security_governance",
+      "title": "Information Security Policies",
+      "description": "Management direction and support for information security are defined and reviewed.",
+      "keywords": ["policy", "governance", "management", "review"]
+    },
+    {
+      "id": "A.8",
+      "category": "asset_management",
+      "title": "Asset Management",
+      "description": "Information assets are identified, classified, and handled according to risk.",
+      "keywords": ["asset", "inventory", "classification", "ownership"]
+    },
+    {
+      "id": "A.9",
+      "category": "access_control",
+      "title": "Access Control",
+      "description": "Access to information and systems is limited according to business requirements.",
+      "keywords": ["access", "identity", "least privilege", "mfa", "review"]
+    },
+    {
+      "id": "A.12",
+      "category": "security_operations",
+      "title": "Operations Security",
+      "description": "Operational procedures protect systems from malware, logging gaps, and vulnerabilities.",
+      "keywords": ["operations", "logging", "malware", "vulnerability", "backup"]
+    }
+  ],
+  "GDPR": [
+    {
+      "id": "Art. 28",
+      "category": "processor_obligations",
+      "title": "Processor Obligations",
+      "description": "Processors provide sufficient guarantees and process personal data under controller instructions.",
+      "keywords": ["processor", "subprocessor", "controller", "instructions", "contract"]
+    },
+    {
+      "id": "Art. 32",
+      "category": "data_protection",
+      "title": "Security of Processing",
+      "description": "Appropriate technical and organizational measures protect personal data.",
+      "keywords": ["personal data", "encryption", "confidentiality", "integrity", "availability"]
+    },
+    {
+      "id": "Art. 33",
+      "category": "breach_notification",
+      "title": "Breach Notification",
+      "description": "Personal data breaches are notified to supervisory authorities without undue delay.",
+      "keywords": ["breach", "notification", "72 hours", "incident", "authority"]
+    }
+  ]
+}
