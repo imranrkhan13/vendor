@@ -32,10 +32,15 @@ class AssessmentPlanner:
             categories = self.registry.categories(frameworks)
 
         if self.llm.enabled:
-            self.llm.complete_json(
-                "Select applicable frameworks and control categories from the supplied SOC2 and questionnaire context.",
-                {"frameworks": frameworks, "categories": categories},
-            )
+            try:
+                self.llm.complete_json(
+                    "Select applicable frameworks and control categories from the supplied SOC2 and questionnaire context.",
+                    {"frameworks": frameworks, "categories": categories},
+                )
+            except Exception:
+                # Inference is advisory only; deterministic planning must still succeed
+                # even if the Vultr endpoint is unreachable or the API key is rejected.
+                pass
 
         return AssessmentPlan(
             frameworks=frameworks,
