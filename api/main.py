@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import asyncio
+import json
+from collections.abc import AsyncIterator
+
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
+from agent.tools import query_breach_history
 from agent.workflow import VendorRiskAgent
 from frameworks.registry import FrameworkRegistry
 from parser.questionnaire import parse_questionnaire_file
@@ -73,3 +79,116 @@ async def assess_vendor(
     agent = VendorRiskAgent()
     brief = agent.assess(vendor_name, soc2, parsed_questionnaire, breach_text)
     return agent.to_dict(brief)
+
+
+@app.post("/trace")
+async def trace_vendor_assessment(
+    vendor_name: str = Form(...),
+    soc2_report: UploadFile = File(...),
+    questionnaire: UploadFile = File(...),
+    breach_history: UploadFile | None = File(None),
+) -> StreamingResponse:
+    soc2_bytes = await soc2_report.read()
+    questionnaire_bytes = await questionnaire.read()
+    breach_text = None
+    if breach_history:
+        breach_text = (await breach_history.read()).decode("utf-8", errors="ignore")
+
+    return StreamingResponse(
+        _stream_assessment_trace(
+            vendor_name=vendor_name,
+            soc2_bytes=soc2_bytes,
+            soc2_filename=soc2_report.filename or "soc2.pdf",
+            questionnaire_bytes=questionnaire_bytes,
+            questionnaire_filename=questionnaire.filename or "questionnaire.json",
+            breach_text=breach_text,
+        ),
+        media_type="text/event-stream",
+    )
+
+
+async def _stream_assessment_trace(
+    vendor_name: str,
+    soc2_bytes: bytes,
+    soc2_filename: str,
+    questionnaire_bytes: bytes,
+    questionnaire_filename: str,
+    breach_text: str | None,
+) -> AsyncIterator[str]:
+    agent = VendorRiskAgent()
+
+    try:
+        yield _trace_event("ingest", "Reading uploaded SOC2 report and questionnaire.")
+        await asyncio.sleep(0.08)
+        soc2 = parse_soc2_pdf(soc2_bytes, soc2_filename)
+        parsed_questionnaire = parse_questionnaire_file(questionnaire_bytes, questionnaire_filename)
+        yield _trace_event(
+            "ingest",
+            f"Parsed {len(soc2.chunks)} SOC2 evidence chunks and {len(parsed_questionnaire.answers)} questionnaire answers.",
+        )
+
+        await asyncio.sleep(0.08)
+        yield _trace_event("plan", "Planning applicable frameworks and control categories.")
+        plan = agent.planner.plan(soc2, parsed_questionnaire)
+        yield _trace_event(
+            "plan",
+            f"Found {' + '.join(plan.frameworks)}; selected {len(plan.categories)} control categories.",
+            {"frameworks": plan.frameworks, "categories": plan.categories},
+        )
+
+        await asyncio.sleep(0.08)
+        yield _trace_event("retrieve", "Retrieving SOC2 evidence, test results, and auditor opinion.")
+        soc2_evidence = agent.retriever.retrieve_soc2_evidence(plan, soc2)
+        soc2_citations = sum(len(evidence.soc2_citations) for evidence in soc2_evidence.values())
+        yield _trace_event("retrieve", f"Matched {soc2_citations} SOC2 citations across selected categories.")
+
+        await asyncio.sleep(0.08)
+        yield _trace_event("cross_reference", "Cross-referencing questionnaire answers against SOC2 evidence.")
+        combined_evidence = agent.retriever.cross_reference_questionnaire(
+            plan,
+            parsed_questionnaire,
+            soc2_evidence,
+        )
+        questionnaire_hits = sum(
+            len(evidence.questionnaire_citations) for evidence in combined_evidence.values()
+        )
+        yield _trace_event(
+            "cross_reference",
+            f"Matched {questionnaire_hits} questionnaire answers to framework controls.",
+        )
+
+        await asyncio.sleep(0.08)
+        yield _trace_event("tool", "Querying mocked breach-history tool.")
+        breach_history = query_breach_history(vendor_name, breach_text)
+        yield _trace_event("tool", f"Found {len(breach_history)} breach-history record(s).")
+
+        await asyncio.sleep(0.08)
+        yield _trace_event("reason", "Computing deterministic risk and confidence scores.")
+        findings, overall_score, risk_level, confidence = agent.scoring_engine.score(
+            combined_evidence,
+            breach_history,
+        )
+        for finding in findings:
+            if finding.gaps:
+                yield _trace_event(
+                    "reason",
+                    f"Flagging gap in {finding.category}: {finding.gaps[0]}",
+                    {"category": finding.category, "score": finding.score},
+                )
+
+        await asyncio.sleep(0.08)
+        brief = agent.assess(vendor_name, soc2, parsed_questionnaire, breach_text)
+        yield _trace_event(
+            "output",
+            f"Generated {risk_level} risk brief with score {overall_score}/100 and {round(confidence * 100)}% confidence.",
+        )
+        yield _trace_event("complete", "Assessment complete.", {"brief": agent.to_dict(brief)})
+    except Exception as exc:
+        yield _trace_event("error", f"Unable to complete trace: {exc}")
+
+
+def _trace_event(step: str, message: str, extra: dict[str, object] | None = None) -> str:
+    payload = {"step": step, "message": message}
+    if extra:
+        payload.update(extra)
+    return f"data: {json.dumps(payload)}\n\n"

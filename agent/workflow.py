@@ -7,7 +7,7 @@ from frameworks.registry import FrameworkRegistry
 from parser.models import ParsedQuestionnaire, ParsedSOC2Report
 from scoring.engine import ScoringEngine
 
-from .models import BreachRecord, RiskBrief
+from .models import BreachRecord, ConfidenceBreakdown, ControlEvidence, RiskBrief
 from .planner import AssessmentPlanner
 from .retrieval import EvidenceRetriever
 from .tools import query_breach_history
@@ -61,6 +61,7 @@ class VendorRiskAgent:
             overall_risk_score=overall_score,
             overall_risk_level=risk_level,
             confidence_score=confidence,
+            confidence_breakdown=_build_confidence_breakdown(combined_evidence, confidence),
             categories=findings,
             flagged_gaps=_build_flagged_gaps(findings, breach_history),
             follow_up_questions=_build_follow_up_questions(findings),
@@ -96,6 +97,47 @@ def _build_flagged_gaps(findings, breach_history: list[BreachRecord]) -> list[di
             }
         )
     return gaps
+
+
+def _build_confidence_breakdown(
+    evidence_by_category: dict[str, ControlEvidence],
+    confidence_score: float,
+) -> ConfidenceBreakdown:
+    direct = 0
+    partial = 0
+    missing = 0
+    notes: list[str] = []
+
+    for category, evidence in evidence_by_category.items():
+        has_soc2 = bool(evidence.soc2_citations)
+        has_questionnaire = bool(evidence.questionnaire_citations)
+        if has_soc2 and has_questionnaire:
+            direct += 1
+        elif has_soc2 or has_questionnaire:
+            partial += 1
+            notes.append(f"{category}: partial evidence from one source.")
+        else:
+            missing += 1
+            notes.append(f"{category}: no direct evidence found.")
+
+    total = max(1, len(evidence_by_category))
+    percentage = round(confidence_score * 100)
+    formula = (
+        f"{percentage}% = {direct}/{total} control categories verified with direct evidence, "
+        f"{partial} with partial evidence, {missing} with no evidence."
+    )
+    if not notes:
+        notes.append("All selected control categories have both SOC2 and questionnaire evidence.")
+
+    return ConfidenceBreakdown(
+        score=confidence_score,
+        direct_evidence_controls=direct,
+        partial_evidence_controls=partial,
+        no_evidence_controls=missing,
+        total_controls=total,
+        formula=formula,
+        notes=notes,
+    )
 
 
 def _build_follow_up_questions(findings) -> list[str]:

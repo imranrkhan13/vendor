@@ -47,12 +47,24 @@ class ControlFinding:
 
 
 @dataclass(frozen=True)
+class ConfidenceBreakdown:
+    score: float
+    direct_evidence_controls: int
+    partial_evidence_controls: int
+    no_evidence_controls: int
+    total_controls: int
+    formula: str
+    notes: list[str]
+
+
+@dataclass(frozen=True)
 class RiskBrief:
     vendor_name: str
     plan: AssessmentPlan
     overall_risk_score: int
     overall_risk_level: str
     confidence_score: float
+    confidence_breakdown: ConfidenceBreakdown
     categories: list[ControlFinding]
     flagged_gaps: list[dict[str, Any]]
     follow_up_questions: list[str]
