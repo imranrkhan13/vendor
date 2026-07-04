@@ -1,8 +1,4 @@
-"use client";
-
-import { FormEvent, useState } from "react";
-
-import { RiskBrief, submitAssessment } from "../lib/api";
+import LandingPage from "../components/landing-page";
 
 const FEATURES = [
   { icon: "🧭", title: "Plans frameworks", copy: "SOC2, ISO 27001 & GDPR" },
