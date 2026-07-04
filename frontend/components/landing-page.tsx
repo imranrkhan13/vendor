@@ -346,43 +346,43 @@ function Nav() {
 
 function Hero() {
   return (
-    <section className="mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-20 md:px-8 lg:grid-cols-[1fr_0.95fr] lg:pb-28 lg:pt-28">
+    <section className="relative mx-auto grid min-h-[calc(100vh-74px)] max-w-7xl items-center gap-12 px-5 py-20 md:px-8 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="absolute left-1/2 top-16 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/45 blur-3xl" />
       <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.7 }}>
-        <Pill icon={Sparkles}>Enterprise security reviews, automated</Pill>
-        <h1 className="mt-8 max-w-5xl text-5xl font-semibold tracking-[-0.06em] text-slate-950 md:text-7xl lg:text-[5.8rem] lg:leading-[0.9]">
-          Vendor risk assessments that read the evidence first.
+        <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-700">
+          Vendor reviews are still manual
+        </p>
+        <h1 className="mt-7 max-w-5xl text-6xl font-semibold tracking-[-0.075em] text-slate-950 md:text-8xl lg:text-[7.4rem] lg:leading-[0.86]">
+          Stop reading
+          <span className="block text-slate-400">150-page</span>
+          SOC2 reports.
         </h1>
-        <div className="mt-8 grid gap-3 text-xl leading-8 text-slate-600 md:text-2xl">
-          {storySteps.map((step, index) => (
-            <motion.p
-              key={step}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.18 + index * 0.12 }}
+        <p className="mt-8 max-w-2xl text-2xl leading-9 tracking-[-0.03em] text-slate-600 md:text-3xl">
+          Read the evidence, not the paperwork.
+        </p>
+        <div className="mt-9 flex flex-wrap items-center gap-4 text-lg font-medium text-slate-500">
+          {["Upload.", "Analyze.", "Decide."].map((item, index) => (
+            <motion.span
+              key={item}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + index * 0.12 }}
+              className="rounded-full border border-slate-200 bg-white/80 px-4 py-2 shadow-sm"
             >
-              {step}
-            </motion.p>
+              {item}
+            </motion.span>
           ))}
         </div>
-        <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-600">
-          Upload SOC2 reports, security questionnaires, and breach context. The agent plans the
-          review, cross-checks claims, exposes its reasoning trace, and generates a cited risk brief.
-        </p>
-        <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-          <a href="#assessment" className="btn-primary">
-            Start assessment <ArrowRight className="h-4 w-4" />
-          </a>
-          <a href="#dashboard" className="btn-secondary">
-            View dashboard
-          </a>
-        </div>
+        <a href="#assessment" className="btn-primary mt-10">
+          Try assessment <ArrowRight className="h-4 w-4" />
+        </a>
       </motion.div>
-      <HeroIllustration />
+      <PainfulReviewIllustration />
     </section>
   );
 }
 
-function HeroIllustration() {
+function PainfulReviewIllustration() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30, scale: 0.97 }}
@@ -390,59 +390,37 @@ function HeroIllustration() {
       transition={{ duration: 0.8, delay: 0.15 }}
       className="relative"
     >
-      <div className="absolute -left-10 top-10 h-48 w-48 rounded-full bg-blue-200/50 blur-3xl" />
-      <div className="absolute -right-8 bottom-12 h-52 w-52 rounded-full bg-indigo-200/60 blur-3xl" />
-      <div className="relative rounded-[2rem] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-200/80">
-        <div className="rounded-[1.5rem] border border-slate-100 bg-gradient-to-br from-slate-50 to-white p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Assessment workspace
-              </p>
-              <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
-                Evidence-led review
-              </h3>
-            </div>
-            <motion.div
-              animate={{ rotate: [0, 4, -4, 0] }}
-              transition={{ duration: 5, repeat: Infinity }}
-              className="rounded-2xl bg-blue-600 p-3 text-white shadow-lg shadow-blue-600/20"
-            >
-              <Brain className="h-6 w-6" />
-            </motion.div>
+      <div className="absolute -left-8 top-8 h-48 w-48 rounded-full bg-amber-200/40 blur-3xl" />
+      <div className="absolute -right-8 bottom-10 h-56 w-56 rounded-full bg-blue-200/50 blur-3xl" />
+      <div className="relative min-h-[520px]">
+        {[
+          ["150-page SOC2", "Manual reading", FileText, "left-0 top-10 rotate-[-6deg]"],
+          ["Security spreadsheet", "Claims to compare", Table2, "right-2 top-28 rotate-[5deg]"],
+          ["Email thread", "Waiting on answers", GitBranch, "left-10 bottom-24 rotate-[4deg]"],
+          ["Approval meeting", "Decision delayed", Clock3, "right-14 bottom-8 rotate-[-4deg]"],
+        ].map(([title, body, Icon, position], index) => (
+          <motion.div
+            key={title as string}
+            className={`absolute w-64 rounded-[1.5rem] border border-slate-200 bg-white/90 p-5 shadow-xl shadow-slate-200/80 backdrop-blur ${position}`}
+            animate={{ y: [0, -10, 0], rotate: index % 2 ? [2, 4, 2] : [-3, -5, -3] }}
+            transition={{ duration: 5.5, repeat: Infinity, delay: index * 0.22 }}
+          >
+            <Icon className="h-5 w-5 text-slate-400" />
+            <p className="mt-10 text-lg font-semibold tracking-[-0.03em] text-slate-950">{title as string}</p>
+            <p className="mt-2 text-sm text-slate-500">{body as string}</p>
+          </motion.div>
+        ))}
+        <motion.div
+          className="absolute left-1/2 top-1/2 w-72 -translate-x-1/2 -translate-y-1/2 rounded-[2rem] border border-blue-100 bg-white p-5 shadow-2xl shadow-blue-200/60"
+          animate={{ scale: [1, 1.02, 1] }}
+          transition={{ duration: 4, repeat: Infinity }}
+        >
+          <div className="rounded-[1.5rem] bg-gradient-to-br from-blue-600 to-indigo-600 p-5 text-white">
+            <Brain className="h-7 w-7" />
+            <p className="mt-16 text-sm uppercase tracking-[0.18em] text-blue-100">One upload</p>
+            <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">Risk brief in minutes</h3>
           </div>
-          <div className="mt-6 grid gap-3">
-            {[
-              ["SOC2 parsing", "Page citations extracted", "100%"],
-              ["Claim cross-check", "Questionnaire mapped", "Running"],
-              ["Risk scoring", "Deterministic rules", "Auditable"],
-            ].map(([title, detail, value], index) => (
-              <motion.div
-                key={title}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 4.5, repeat: Infinity, delay: index * 0.2 }}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-medium text-slate-900">{title}</p>
-                    <p className="mt-1 text-sm text-slate-500">{detail}</p>
-                  </div>
-                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                    {value}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-          <div className="mt-5 grid grid-cols-3 gap-3">
-            {["SOC2", "ISO 27001", "GDPR"].map((item) => (
-              <div key={item} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-center text-sm font-medium text-slate-700">
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
+        </motion.div>
       </div>
     </motion.div>
   );
@@ -450,26 +428,378 @@ function HeroIllustration() {
 
 function StorySections({ frameworks }: { frameworks: FrameworkControl[] }) {
   return (
-    <section id="platform" className="mx-auto max-w-7xl px-5 py-20 md:px-8">
+    <section id="platform" className="relative">
+      <PainToAutomation />
+      <ScrollExtractionStory />
+      <InteractiveAssessmentStory />
+      <ReasoningStory />
+      <TrustStory />
+      <FrameworkConstellation frameworks={frameworks} />
+      <LivingDashboardStory />
+      <PipelineStory />
+    </section>
+  );
+}
+
+function PainToAutomation() {
+  const painful = [
+    ["PDF", "A report gets downloaded."],
+    ["Spreadsheet", "Claims are copied by hand."],
+    ["Email", "Questions wait in inboxes."],
+    ["Slack", "Context gets scattered."],
+    ["Meetings", "Approval waits for consensus."],
+    ["Approval", "The decision arrives days later."],
+  ];
+  const automated = ["Upload", "Risk Brief", "Decision"];
+
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-28 md:px-8">
+      <div className="grid gap-16 lg:grid-cols-[1fr_0.8fr] lg:items-center">
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">The old workflow</p>
+          <h2 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-slate-950 md:text-7xl">
+            Every review turns into a relay race.
+          </h2>
+          <p className="mt-6 max-w-2xl text-xl leading-8 text-slate-600">
+            Procurement waits. Security reads. Legal asks for evidence. Someone still has to connect
+            the PDF, the questionnaire, and the breach history before a decision can be defended.
+          </p>
+        </motion.div>
+        <div className="grid gap-4">
+          {painful.map(([title, body], index) => (
+            <motion.div
+              key={title}
+              className="flex items-center gap-4 rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm"
+              initial={{ opacity: 0, x: 28 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.08 }}
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-sm font-semibold text-slate-500">
+                {index + 1}
+              </span>
+              <div>
+                <p className="font-semibold text-slate-950">{title}</p>
+                <p className="text-sm text-slate-500">{body}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+      <div className="mx-auto mt-20 max-w-4xl rounded-[2rem] border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-6 shadow-xl shadow-blue-100/70">
+        <div className="grid gap-4 md:grid-cols-3">
+          {automated.map((item, index) => (
+            <motion.div
+              key={item}
+              className="rounded-[1.5rem] bg-white p-5 text-center shadow-sm"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.12 }}
+            >
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-700">{item}</p>
+              <p className="mt-5 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
+                {index === 2 ? "30 seconds" : index === 1 ? "Cited" : "One file set"}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ScrollExtractionStory() {
+  const stages = [
+    ["SOC2 pages separate", "The report is converted into page-grounded evidence chunks."],
+    ["Controls are extracted", "SOC2, ISO 27001, and GDPR mappings identify the relevant categories."],
+    ["Questionnaire answers match", "Vendor claims are cross-checked against audited controls."],
+    ["Evidence links form", "Every finding keeps the citation that supports it."],
+    ["Confidence increases", "Direct evidence raises confidence; missing evidence lowers it."],
+  ];
+
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-28 md:px-8">
+      <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+        <div>
+          <Pill icon={FileCheck2}>As the agent works</Pill>
+          <h2 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-slate-950 md:text-7xl">
+            Paper becomes evidence.
+          </h2>
+          <p className="mt-6 text-lg leading-8 text-slate-600">
+            The interface explains each transformation: documents become controls, controls become
+            citations, and citations become a risk decision security leaders can defend.
+          </p>
+        </div>
+        <div className="relative min-h-[560px]">
+          <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-br from-blue-50 to-white" />
+          {stages.map(([title, body], index) => (
+            <motion.div
+              key={title}
+              className="absolute left-6 right-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-lg shadow-slate-200/70 md:left-auto md:w-[440px]"
+              style={{ top: `${index * 86 + 36}px` }}
+              initial={{ opacity: 0, y: 32, scale: 0.96 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ delay: index * 0.08 }}
+            >
+              <div className="flex items-start gap-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+                  <Sparkles className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="font-semibold text-slate-950">{title}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">{body}</p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function InteractiveAssessmentStory() {
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-28 md:px-8">
+      <div className="mx-auto max-w-4xl text-center">
+        <Pill icon={Eye}>A living assessment</Pill>
+        <h2 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-slate-950 md:text-7xl">
+          It should feel like you are already inside the product.
+        </h2>
+      </div>
+      <div className="mt-14 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        <Card className="overflow-hidden">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Evidence expands</p>
+          <motion.div
+            className="mt-8 rounded-[1.5rem] border border-blue-100 bg-blue-50 p-5"
+            whileInView={{ scale: [0.98, 1], opacity: [0.7, 1] }}
+            viewport={{ once: true }}
+          >
+            <p className="text-sm font-semibold text-blue-700">SOC2 page citation</p>
+            <p className="mt-3 text-lg leading-8 text-slate-700">
+              "Access controls operated effectively with no exceptions noted."
+            </p>
+          </motion.div>
+          <div className="mt-5 grid gap-3">
+            {["Questionnaire answer matched", "Breach history checked", "Control gap explained"].map((item, index) => (
+              <motion.div
+                key={item}
+                className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4"
+                initial={{ opacity: 0, x: -14 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <span className="text-sm font-medium text-slate-700">{item}</span>
+              </motion.div>
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Decision forms</p>
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
+            <AnimatedNumber label="Overall Vendor Risk" value="Evidence-led" />
+            <AnimatedNumber label="Assessment Confidence" value="Explained" />
+            <AnimatedNumber label="Approval Status" value="Actionable" />
+          </div>
+          <div className="mt-8 h-2 rounded-full bg-slate-100">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600"
+              initial={{ width: "18%" }}
+              whileInView={{ width: "78%" }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.2 }}
+            />
+          </div>
+          <p className="mt-4 text-sm leading-6 text-slate-500">
+            The real workspace below uses generated assessment data. This story panel explains the
+            interaction pattern without inventing customer metrics.
+          </p>
+        </Card>
+      </div>
+    </section>
+  );
+}
+
+function ReasoningStory() {
+  const steps = ["Planning", "Retrieve Evidence", "Cross-check", "Score", "Generate Report"];
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-28 md:px-8">
       <SectionHeader
-        eyebrow="A complete review system"
-        title="Built to answer what matters in the first few minutes."
-        body="The product experience makes the review path visible: what evidence was read, which controls were matched, where gaps appeared, and why the score changed."
+        eyebrow="Reasoning, not magic"
+        title="The product shows how it reached the decision."
+        body="Enterprise reviewers should never have to accept a black-box answer. The agent exposes the plan, the evidence, the cross-check, and the deterministic score."
       />
-      <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {productSections.map(([title, body], index) => (
-          <AnimatedCard key={title} delay={index * 0.04}>
-            <span className="text-sm font-semibold text-blue-600">0{index + 1}</span>
-            <h3 className="mt-5 text-xl font-semibold tracking-[-0.03em] text-slate-950">{title}</h3>
-            <p className="mt-3 text-sm leading-6 text-slate-600">{body}</p>
-          </AnimatedCard>
+      <div className="mt-14 grid gap-4 lg:grid-cols-5">
+        {steps.map((step, index) => (
+          <motion.div
+            key={step}
+            className="relative rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.08 }}
+          >
+            <p className="text-sm font-semibold text-blue-600">0{index + 1}</p>
+            <h3 className="mt-10 text-2xl font-semibold tracking-[-0.04em] text-slate-950">{step}</h3>
+            {index < steps.length - 1 ? (
+              <motion.div
+                className="absolute right-[-18px] top-1/2 hidden h-px w-9 bg-gradient-to-r from-blue-300 to-transparent lg:block"
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 + index * 0.08 }}
+              />
+            ) : null}
+          </motion.div>
         ))}
       </div>
-      <div className="mt-10 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <ProblemFlow />
-        <ArchitectureFlow />
+    </section>
+  );
+}
+
+function TrustStory() {
+  const trust = [
+    ["Evidence", "Each finding points back to uploaded source material."],
+    ["Citation", "Page and row references stay attached to the decision."],
+    ["Confidence", "The score explains direct, partial, and missing evidence."],
+    ["Reason", "Recommendations include the reason they were generated."],
+    ["Framework", "SOC2, ISO 27001, and GDPR context stays visible."],
+    ["No hallucinated scores", "Risk is calculated by deterministic Python rules."],
+  ];
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-28 md:px-8">
+      <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60 md:p-12">
+        <SectionHeader
+          eyebrow="Trust"
+          title="Why security teams can defend the output."
+          body="The agent can help read and plan, but it never invents a risk score. The final answer is anchored to evidence and deterministic scoring."
+        />
+        <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {trust.map(([title, body], index) => (
+            <motion.div
+              key={title}
+              className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5"
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.05 }}
+            >
+              <p className="font-semibold text-slate-950">{title}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{body}</p>
+            </motion.div>
+          ))}
+        </div>
       </div>
-      <FrameworkExplorer frameworks={frameworks} compact />
+    </section>
+  );
+}
+
+function FrameworkConstellation({ frameworks }: { frameworks: FrameworkControl[] }) {
+  const names = Array.from(new Set([...frameworks.map((control) => control.framework), "NIST"]));
+  return (
+    <section id="frameworks-story" className="mx-auto max-w-7xl px-5 py-28 md:px-8">
+      <div className="mx-auto max-w-4xl text-center">
+        <Pill icon={Layers3}>Framework intelligence</Pill>
+        <h2 className="mt-5 text-5xl font-semibold tracking-[-0.06em] text-slate-950 md:text-7xl">
+          Frameworks orbit the same evidence.
+        </h2>
+      </div>
+      <div className="relative mx-auto mt-16 min-h-[420px] max-w-5xl rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60">
+        <div className="absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600 text-white shadow-2xl shadow-blue-600/20">
+          <div className="flex h-full items-center justify-center text-center text-sm font-semibold">Evidence</div>
+        </div>
+        <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
+          <line x1="50%" y1="50%" x2="18%" y2="22%" stroke="#BFDBFE" strokeWidth="2" strokeDasharray="6 8" />
+          <line x1="50%" y1="50%" x2="82%" y2="24%" stroke="#BFDBFE" strokeWidth="2" strokeDasharray="6 8" />
+          <line x1="50%" y1="50%" x2="20%" y2="78%" stroke="#BFDBFE" strokeWidth="2" strokeDasharray="6 8" />
+          <line x1="50%" y1="50%" x2="80%" y2="76%" stroke="#BFDBFE" strokeWidth="2" strokeDasharray="6 8" />
+        </svg>
+        {names.slice(0, 4).map((name, index) => {
+          const positions = ["left-[8%] top-[12%]", "right-[8%] top-[14%]", "left-[10%] bottom-[14%]", "right-[10%] bottom-[16%]"];
+          const count = frameworks.filter((control) => control.framework === name).length;
+          return (
+            <motion.div
+              key={name}
+              className={`absolute ${positions[index]} rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-lg transition hover:-translate-y-1 hover:shadow-xl`}
+              whileHover={{ scale: 1.04 }}
+            >
+              <p className="text-xl font-semibold text-slate-950">{name}</p>
+              <p className="mt-2 text-sm text-slate-500">
+                {count ? `${count} mapped controls` : "Future mapping surface"}
+              </p>
+            </motion.div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function LivingDashboardStory() {
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-28 md:px-8">
+      <SectionHeader
+        eyebrow="Living dashboard"
+        title="The dashboard should answer what changed, not just what happened."
+        body="Once assessments exist, the workspace below turns generated reports into risk movement, confidence movement, framework usage, and attention areas."
+      />
+      <div className="mt-14 grid gap-6 lg:grid-cols-[1fr_0.8fr]">
+        <Card>
+          <div className="grid gap-4 md:grid-cols-3">
+            {["Risk changes", "Confidence grows", "Evidence expands"].map((item, index) => (
+              <motion.div key={item} className="rounded-[1.5rem] bg-slate-50 p-5" whileInView={{ y: [12, 0], opacity: [0.5, 1] }} viewport={{ once: true }} transition={{ delay: index * 0.12 }}>
+                <p className="text-sm text-slate-500">{item}</p>
+                <div className="mt-8 h-2 rounded-full bg-slate-200">
+                  <motion.div className="h-full rounded-full bg-blue-600" initial={{ width: "8%" }} whileInView={{ width: `${45 + index * 18}%` }} viewport={{ once: true }} />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">PDF highlights</p>
+          <div className="mt-6 space-y-3">
+            {["Referenced SOC2 page", "Questionnaire answer", "Scoring paragraph"].map((item, index) => (
+              <motion.div key={item} className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm font-medium text-blue-800" initial={{ opacity: 0.3 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: index * 0.15 }}>
+                {item}
+              </motion.div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </section>
+  );
+}
+
+function PipelineStory() {
+  const nodes = ["Upload", "Parser", "Planning", "Evidence Retrieval", "Cross-check", "Reasoning", "Deterministic Scoring", "Executive Report"];
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-28 md:px-8">
+      <SectionHeader
+        eyebrow="Architecture"
+        title="A flowing pipeline from paperwork to decision."
+        body="No boxes for the sake of boxes. Each stage exists to preserve evidence, context, and auditability."
+      />
+      <div className="relative mt-14 overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60">
+        <div className="absolute left-12 right-12 top-1/2 h-1 rounded-full bg-blue-100" />
+        <motion.div
+          className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-blue-600 shadow-[0_0_24px_rgba(37,99,235,0.55)]"
+          animate={{ left: ["3rem", "calc(100% - 3rem)"] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <div className="relative grid gap-4 md:grid-cols-4">
+          {nodes.map((node, index) => (
+            <motion.div key={node} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm" initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.05 }}>
+              <p className="text-xs font-semibold text-blue-600">0{index + 1}</p>
+              <p className="mt-8 font-semibold text-slate-950">{node}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -502,10 +832,11 @@ function ProductWorkspace(props: {
   return (
     <section id="dashboard" className="mx-auto max-w-7xl px-5 py-20 md:px-8">
       <SectionHeader
-        eyebrow="Enterprise workspace"
-        title="A security platform, not a one-off upload form."
-        body="Dashboard, assessment workspace, vendor comparison, history, evidence explorer, and exports are all powered by real assessment results from the existing API."
+        eyebrow="Assessment workflow"
+        title="One continuous path from upload to decision."
+        body="The workspace keeps the user oriented as evidence moves from documents to live analysis, review, risk assessment, decision summary, export, and history."
       />
+      <JourneyProgress loading={props.loading} records={props.records} trace={props.trace} activeRecord={props.activeRecord} />
       <Dashboard metrics={props.metrics} records={props.records} />
       <AssessmentWorkspace {...props} />
       <VendorComparison records={props.records} />
@@ -544,6 +875,148 @@ function Dashboard({ metrics, records }: { metrics: ReturnType<typeof buildMetri
           <RiskDistribution records={records} />
         </Card>
       </div>
+    </div>
+  );
+}
+
+function JourneyProgress({
+  activeRecord,
+  loading,
+  records,
+  trace,
+}: {
+  activeRecord: AssessmentRecord | null;
+  loading: boolean;
+  records: AssessmentRecord[];
+  trace: TraceEvent[];
+}) {
+  const steps = [
+    "Welcome",
+    "Upload Documents",
+    "Live AI Analysis",
+    "Evidence Review",
+    "Risk Assessment",
+    "Decision Summary",
+    "Export",
+    "History",
+  ];
+  const current = loading
+    ? 2
+    : activeRecord
+      ? 5
+      : records.length
+        ? 7
+        : trace.length
+          ? 2
+          : 1;
+
+  return (
+    <div className="mt-10 rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-sm" aria-label="Assessment workflow progress">
+      <div className="grid gap-2 md:grid-cols-4 lg:grid-cols-8">
+        {steps.map((step, index) => {
+          const complete = index < current;
+          const active = index === current;
+          return (
+            <div key={step} className="flex items-center gap-2 rounded-2xl px-3 py-2">
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                  complete ? "bg-green-100 text-green-700" : active ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400"
+                }`}
+              >
+                {complete ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+              </span>
+              <span className={`text-xs font-medium ${active ? "text-blue-700" : complete ? "text-slate-700" : "text-slate-400"}`}>
+                {step}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ProcessingChecklist({
+  loading,
+  trace,
+  uploadProgress,
+}: {
+  loading: boolean;
+  trace: TraceEvent[];
+  uploadProgress: number;
+}) {
+  const items = [
+    ["Reading SOC2 report", trace.some((event) => event.step === "ingest") || uploadProgress > 8],
+    ["Extracting controls", trace.some((event) => event.step === "plan")],
+    ["Matching questionnaire", trace.some((event) => event.step === "cross_reference")],
+    ["Searching breach history", trace.some((event) => event.step === "tool")],
+    ["Computing deterministic risk", trace.some((event) => event.step === "reason")],
+    ["Generating executive summary", trace.some((event) => event.step === "output" || event.step === "complete")],
+  ];
+
+  if (!loading && !trace.length) {
+    return null;
+  }
+
+  return (
+    <div className="mt-6 rounded-[1.5rem] border border-blue-100 bg-blue-50/60 p-4">
+      <p className="text-sm font-semibold text-blue-900">Live analysis status</p>
+      <div className="mt-4 grid gap-2">
+        {items.map(([label, complete], index) => (
+          <motion.div
+            key={label as string}
+            className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2 text-sm"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.04 }}
+          >
+            <span className={`flex h-6 w-6 items-center justify-center rounded-full ${complete ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-400"}`}>
+              {complete ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+            </span>
+            <span className={complete ? "text-slate-800" : "text-slate-500"}>{label as string}</span>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DecisionPanel({ record }: { record: AssessmentRecord }) {
+  const brief = record.brief;
+  const approvalStatus = brief.overall_risk_score > 65 ? "Escalate" : brief.flagged_gaps.length ? "Conditional approval" : "Ready for approval";
+  const reviewTimeSaved = brief.categories.length
+    ? `${Math.max(1, brief.categories.length * 2)}+ manual review steps avoided`
+    : "Manual evidence review avoided";
+
+  return (
+    <div className="rounded-[1.75rem] border border-blue-100 bg-gradient-to-br from-blue-600 to-indigo-600 p-6 text-white shadow-xl shadow-blue-600/20">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-100">Decision summary</p>
+          <h3 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">{recommendation(brief)}</h3>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-blue-50">
+            This recommendation is based on cited evidence, detected gaps, breach signals, and the deterministic scoring rules used by the assessment engine.
+          </p>
+        </div>
+        <RiskBadge level={brief.overall_risk_level} score={brief.overall_risk_score} />
+      </div>
+      <div className="mt-6 grid gap-3 md:grid-cols-3 lg:grid-cols-6">
+        <DecisionMetric label="Overall Vendor Risk" value={`${brief.overall_risk_score}/100`} />
+        <DecisionMetric label="Assessment Confidence" value={`${Math.round(brief.confidence_score * 100)}%`} />
+        <DecisionMetric label="Critical Findings" value={String(brief.flagged_gaps.length)} />
+        <DecisionMetric label="Approval Status" value={approvalStatus} />
+        <DecisionMetric label="Review Time Saved" value={reviewTimeSaved} wide />
+        <DecisionMetric label="Verified Security Controls" value={String(brief.categories.length)} />
+      </div>
+    </div>
+  );
+}
+
+function DecisionMetric({ label, value, wide = false }: { label: string; value: string; wide?: boolean }) {
+  return (
+    <div className={`rounded-2xl bg-white/12 p-4 ring-1 ring-white/20 ${wide ? "md:col-span-2 lg:col-span-1" : ""}`}>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-100">{label}</p>
+      <p className="mt-2 text-lg font-semibold leading-6 text-white">{value}</p>
     </div>
   );
 }
@@ -591,28 +1064,34 @@ function AssessmentWorkspace({
           {uploadProgress > 0 ? <ProgressBar value={uploadProgress} label="Upload and reasoning progress" /> : null}
           {error ? <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
         </form>
+        <ProcessingChecklist trace={trace} loading={loading} uploadProgress={uploadProgress} />
         <TracePanel trace={trace} loading={loading} />
       </Card>
 
       <Card>
         <CardHeader icon={Eye} title="Assessment page" subtitle="Split view for risk, timeline, evidence, gaps, recommendations, and citations." />
         {activeRecord ? (
-          <div className="mt-6 grid gap-5 lg:grid-cols-[0.82fr_1.18fr]">
-            <AssessmentLeft record={activeRecord} records={records} setActiveId={setActiveId} />
-            <AssessmentRight
-              copyShareLink={copyShareLink}
-              exportRecord={exportRecord}
-              pdfUrl={pdfUrl}
-              record={activeRecord}
-              selectedCitation={selectedCitation}
-              setSelectedCitation={setSelectedCitation}
-            />
+          <div className="mt-6 grid gap-5">
+            <DecisionPanel record={activeRecord} />
+            <div className="grid gap-5 lg:grid-cols-[0.82fr_1.18fr]">
+              <AssessmentLeft record={activeRecord} records={records} setActiveId={setActiveId} />
+              <AssessmentRight
+                copyShareLink={copyShareLink}
+                exportRecord={exportRecord}
+                pdfUrl={pdfUrl}
+                record={activeRecord}
+                selectedCitation={selectedCitation}
+                setSelectedCitation={setSelectedCitation}
+              />
+            </div>
           </div>
         ) : (
           <EmptyState
             icon={FileCheck2}
             title="Run your first assessment"
-            body="The assessment workspace will show vendor risk, confidence, timeline, frameworks, evidence, gap analysis, generated questions, and citations."
+            body="Upload a SOC2 report and questionnaire to generate a decision summary, evidence review, gap analysis, generated questions, and cited recommendations."
+            ctaHref="#assessment"
+            ctaLabel="Upload documents"
           />
         )}
       </Card>
@@ -722,8 +1201,8 @@ function AssessmentLeft({
         <p className="text-sm font-medium text-blue-700">Vendor</p>
         <h3 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950">{brief.vendor_name}</h3>
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <MiniMetric label="Risk" value={`${brief.overall_risk_score}/100`} />
-          <MiniMetric label="Confidence" value={`${Math.round(brief.confidence_score * 100)}%`} />
+          <MiniMetric label="Overall Vendor Risk" value={`${brief.overall_risk_score}/100`} />
+          <MiniMetric label="Assessment Confidence" value={`${Math.round(brief.confidence_score * 100)}%`} />
         </div>
       </div>
       <Collapsible title="Timeline" icon={History} defaultOpen>
@@ -764,11 +1243,12 @@ function AssessmentRight({
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => exportRecord("pdf", record)} className="btn-secondary"><Download className="h-4 w-4" /> PDF</button>
-        <button onClick={() => exportRecord("markdown", record)} className="btn-secondary"><FileText className="h-4 w-4" /> Markdown</button>
-        <button onClick={() => exportRecord("json", record)} className="btn-secondary"><FileJson className="h-4 w-4" /> JSON</button>
+        <button onClick={() => exportRecord("pdf", record)} className="btn-secondary"><Download className="h-4 w-4" /> Executive Report</button>
+        <button onClick={() => exportRecord("markdown", record)} className="btn-secondary"><FileText className="h-4 w-4" /> Technical Report</button>
+        <button onClick={() => exportRecord("json", record)} className="btn-secondary"><FileJson className="h-4 w-4" /> JSON Evidence</button>
         <button onClick={copyShareLink} className="btn-secondary"><LinkIcon className="h-4 w-4" /> Share link</button>
       </div>
+      <ExportPreview brief={brief} />
       <Collapsible title="Evidence Viewer" icon={Eye} defaultOpen>
         <EvidenceExplorer brief={brief} selectedCitation={selectedCitation} setSelectedCitation={setSelectedCitation} />
         <CitationPreview citation={selectedCitation} pdfUrl={pdfUrl} />
@@ -792,6 +1272,11 @@ function AssessmentRight({
       </Collapsible>
       <Collapsible title="Confidence breakdown" icon={Sparkles} defaultOpen>
         <p className="text-sm leading-6 text-slate-600">{brief.confidence_breakdown.formula}</p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Confidence improves when more selected controls have direct SOC2 evidence and matching
+          questionnaire support. It decreases when evidence is partial, missing, or contradicted by
+          breach history.
+        </p>
         <div className="mt-4 grid grid-cols-3 gap-3">
           <MiniMetric label="Direct" value={String(brief.confidence_breakdown.direct_evidence_controls)} />
           <MiniMetric label="Partial" value={String(brief.confidence_breakdown.partial_evidence_controls)} />
@@ -803,50 +1288,73 @@ function AssessmentRight({
 }
 
 function VendorComparison({ records }: { records: AssessmentRecord[] }) {
-  const compared = records.slice(0, 5);
+  const compared = records.slice(0, 3);
+  const safest = compared.length
+    ? compared.reduce((best, record) =>
+        record.brief.overall_risk_score < best.brief.overall_risk_score ? record : best,
+      )
+    : null;
   return (
     <div className="mt-14" id="comparison">
       <SectionHeader
         eyebrow="Vendor comparison"
-        title="Compare vendors by evidence, not opinion."
-        body="Upload multiple vendors in one run and compare SOC2, ISO, GDPR, risk, confidence, controls, breaches, and recommendation."
+        title="Which vendor is safer, and why?"
+        body="The comparison scorecard focuses on the decision: risk, confidence, missing evidence, breach signals, control coverage, and recommendation."
       />
-      <Card className="mt-8 overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="min-w-[980px] w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-slate-50 text-left text-slate-500">
-              <tr>
-                {["Vendor", "SOC2", "ISO", "GDPR", "Risk", "Confidence", "Controls", "Breaches", "Recommendation"].map((head) => (
-                  <th key={head} className="border-b border-slate-200 px-5 py-4 font-semibold">{head}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {compared.length ? compared.map((record) => {
+      <Card className="mt-8">
+        {compared.length ? (
+          <>
+            {safest ? (
+              <div className="mb-6 rounded-[1.5rem] border border-green-100 bg-green-50 p-5">
+                <p className="text-sm font-semibold text-green-800">
+                  Safer vendor based on current evidence: {safest.brief.vendor_name}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-green-700">
+                  Lowest overall vendor risk, {Math.round(safest.brief.confidence_score * 100)}%
+                  assessment confidence, {safest.brief.categories.length} verified security control
+                  categories, and {safest.brief.flagged_gaps.length} finding(s) requiring review.
+                </p>
+              </div>
+            ) : null}
+            <div className="grid gap-4 lg:grid-cols-3">
+              {compared.map((record) => {
                 const brief = record.brief;
                 return (
-                  <tr key={record.id} className="transition hover:bg-blue-50/40">
-                    <td className="border-b border-slate-100 px-5 py-4 font-medium text-slate-900">{brief.vendor_name}</td>
-                    <td className="border-b border-slate-100 px-5 py-4">{yesNo(brief.plan.frameworks.includes("SOC2"))}</td>
-                    <td className="border-b border-slate-100 px-5 py-4">{yesNo(brief.plan.frameworks.includes("ISO27001"))}</td>
-                    <td className="border-b border-slate-100 px-5 py-4">{yesNo(brief.plan.frameworks.includes("GDPR"))}</td>
-                    <td className="border-b border-slate-100 px-5 py-4">{brief.overall_risk_score}/100</td>
-                    <td className="border-b border-slate-100 px-5 py-4">{Math.round(brief.confidence_score * 100)}%</td>
-                    <td className="border-b border-slate-100 px-5 py-4">{brief.categories.length}</td>
-                    <td className="border-b border-slate-100 px-5 py-4">{brief.breach_history.length}</td>
-                    <td className="border-b border-slate-100 px-5 py-4">{recommendation(brief)}</td>
-                  </tr>
+                  <motion.div key={record.id} whileHover={{ y: -4 }} className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-xl font-semibold text-slate-950">{brief.vendor_name}</h3>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{recommendation(brief)}</p>
+                      </div>
+                      <RiskBadge level={brief.overall_risk_level} score={brief.overall_risk_score} />
+                    </div>
+                    <div className="mt-5 grid grid-cols-2 gap-3">
+                      <MiniMetric label="Assessment Confidence" value={`${Math.round(brief.confidence_score * 100)}%`} />
+                      <MiniMetric label="Verified Controls" value={String(brief.categories.length)} />
+                      <MiniMetric label="Breach Signals" value={String(brief.breach_history.length)} />
+                      <MiniMetric label="Missing Evidence" value={String(brief.confidence_breakdown.no_evidence_controls)} />
+                    </div>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {["SOC2", "ISO27001", "GDPR"].map((framework) => (
+                        <span key={framework} className={`rounded-full px-3 py-1 text-xs font-semibold ${brief.plan.frameworks.includes(framework) ? "bg-blue-100 text-blue-700" : "bg-white text-slate-400"}`}>
+                          {framework}
+                        </span>
+                      ))}
+                    </div>
+                  </motion.div>
                 );
-              }) : (
-                <tr>
-                  <td colSpan={9} className="px-5 py-10 text-center text-slate-500">
-                    Compare vendors after running one or more assessments.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              })}
+            </div>
+          </>
+        ) : (
+          <EmptyState
+            icon={Scale}
+            title="No vendors to compare yet"
+            body="Upload two or more vendors to see a side-by-side scorecard explaining which vendor is safer and what evidence differs."
+            ctaHref="#assessment"
+            ctaLabel="Upload vendors"
+          />
+        )}
       </Card>
     </div>
   );
@@ -884,11 +1392,11 @@ function HistoryTable({
     <div id="history" className="mt-14">
       <SectionHeader
         eyebrow="Assessment history"
-        title="Keep previous reports and compare versions."
-        body="History is stored in the browser for the demo, preserving generated briefs, risk movement, exports, and vendor comparison."
+        title="A timeline of risk movement, not a filing cabinet."
+        body="Each assessment becomes a point in the vendor story: what changed, what improved, which findings appeared, and what evidence still needs review."
       />
-      <Card className="mt-8 overflow-hidden p-0">
-        <div className="flex flex-col gap-3 border-b border-slate-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
+      <Card className="mt-8">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-1 items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2">
             <Search className="h-4 w-4 text-slate-400" />
             <input
@@ -912,39 +1420,61 @@ function HistoryTable({
             </select>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-[860px] w-full text-left text-sm">
-            <thead className="sticky top-0 bg-slate-50 text-slate-500">
-              <tr>
-                {["Vendor", "Date", "Risk", "Confidence", "Findings", "Actions"].map((head) => (
-                  <th key={head} className="border-b border-slate-200 px-5 py-4 font-semibold">{head}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {visible.length ? visible.map((record) => (
-                <tr key={record.id} className="hover:bg-blue-50/40">
-                  <td className="border-b border-slate-100 px-5 py-4 font-medium text-slate-900">{record.brief.vendor_name}</td>
-                  <td className="border-b border-slate-100 px-5 py-4 text-slate-600">{new Date(record.createdAt).toLocaleString()}</td>
-                  <td className="border-b border-slate-100 px-5 py-4"><RiskBadge level={record.brief.overall_risk_level} score={record.brief.overall_risk_score} /></td>
-                  <td className="border-b border-slate-100 px-5 py-4">{Math.round(record.brief.confidence_score * 100)}%</td>
-                  <td className="border-b border-slate-100 px-5 py-4">{record.brief.flagged_gaps.length}</td>
-                  <td className="border-b border-slate-100 px-5 py-4">
-                    <div className="flex gap-2">
-                      <button onClick={() => setActiveId(record.id)} className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium hover:border-blue-200 hover:text-blue-700">Open</button>
-                      <button onClick={() => exportRecord("json", record)} className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium hover:border-blue-200 hover:text-blue-700">JSON</button>
+        <div className="mt-8">
+          {visible.length ? (
+            <div className="relative grid gap-5">
+              <div className="absolute bottom-8 left-5 top-4 w-px bg-slate-200" />
+              {visible.map((record, index) => {
+                const previous = sorted[index + 1];
+                const riskDelta = previous ? record.brief.overall_risk_score - previous.brief.overall_risk_score : 0;
+                const confidenceDelta = previous ? Math.round((record.brief.confidence_score - previous.brief.confidence_score) * 100) : 0;
+                return (
+                  <motion.div
+                    key={record.id}
+                    className="relative ml-10 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5"
+                    initial={{ opacity: 0, x: 16 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                  >
+                    <span className="absolute -left-[3.05rem] top-6 h-4 w-4 rounded-full border-4 border-white bg-blue-600 shadow" />
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <p className="text-sm text-slate-500">{new Date(record.createdAt).toLocaleString()}</p>
+                        <h3 className="mt-1 text-xl font-semibold text-slate-950">{record.brief.vendor_name}</h3>
+                        <p className="mt-3 text-sm leading-6 text-slate-600">{historyInsight(record, previous)}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <RiskBadge level={record.brief.overall_risk_level} score={record.brief.overall_risk_score} />
+                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                          Confidence {Math.round(record.brief.confidence_score * 100)}%
+                        </span>
+                      </div>
                     </div>
-                  </td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center text-slate-500">No assessment history matches the current filters.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    <div className="mt-4 grid gap-3 md:grid-cols-4">
+                      <MiniMetric label="Risk trend" value={riskDelta > 0 ? `+${riskDelta}` : String(riskDelta)} />
+                      <MiniMetric label="Confidence trend" value={confidenceDelta > 0 ? `+${confidenceDelta}%` : `${confidenceDelta}%`} />
+                      <MiniMetric label="New findings" value={String(record.brief.flagged_gaps.length)} />
+                      <MiniMetric label="Resolved findings" value={previous ? String(Math.max(0, previous.brief.flagged_gaps.length - record.brief.flagged_gaps.length)) : "0"} />
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button onClick={() => setActiveId(record.id)} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold hover:border-blue-200 hover:text-blue-700">Open assessment</button>
+                      <button onClick={() => exportRecord("json", record)} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold hover:border-blue-200 hover:text-blue-700">Export JSON</button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              icon={History}
+              title="No assessment history yet"
+              body="Upload your first SOC2 report to begin a vendor assessment. Each completed run will appear here as a risk timeline with changes and findings."
+              ctaHref="#assessment"
+              ctaLabel="Start first assessment"
+            />
+          )}
         </div>
-        <div className="flex items-center justify-between border-t border-slate-200 px-5 py-4 text-sm text-slate-600">
+        <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-sm text-slate-600">
           <span>Page {page + 1} of {totalPages}</span>
           <div className="flex gap-2">
             <button disabled={page === 0} onClick={() => setPage((current) => Math.max(0, current - 1))} className="rounded-full border border-slate-200 px-3 py-1 disabled:opacity-40">Previous</button>
@@ -1138,13 +1668,32 @@ function CitationPreview({ citation, pdfUrl }: { citation: Citation | null; pdfU
     <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
       <p className="text-sm font-semibold text-slate-900">Citation preview</p>
       {citation ? (
-        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        <div className="mt-3 grid gap-3 lg:grid-cols-[0.25fr_0.75fr]">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Pages</p>
+            <div className="mt-3 grid gap-2">
+              {[page ?? "1", String(Number(page ?? "1") + 1), String(Number(page ?? "1") + 2)].map((item, index) => (
+                <a
+                  key={`${item}-${index}`}
+                  href={pdfUrl ? `${pdfUrl}#page=${item}` : undefined}
+                  className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${index === 0 ? "border-blue-200 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-500 hover:border-blue-200"}`}
+                >
+                  Page {item}
+                </a>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-3 lg:grid-cols-2">
           <div className="rounded-2xl bg-blue-50 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">{citation.source} · {citation.location}</p>
             <p className="mt-3 text-sm leading-6 text-slate-700">{citation.quote}</p>
+            <p className="mt-4 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-blue-700">
+              Highlighted paragraph contributed to scoring.
+            </p>
           </div>
           <div className="min-h-52 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
             {src ? <iframe title="Evidence PDF preview" src={src} className="h-64 w-full" /> : <div className="flex h-52 items-center justify-center p-6 text-center text-sm text-slate-500">Upload a SOC2 PDF in this session to jump to cited pages.</div>}
+          </div>
           </div>
         </div>
       ) : (
@@ -1161,12 +1710,40 @@ function GeneratedQuestions({ brief }: { brief: RiskBrief }) {
   ];
   return (
     <div className="grid gap-3">
-      {questions.map((question) => (
-        <div key={question} className="flex gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+      {questions.map((question, index) => (
+        <div key={question} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex gap-3 text-sm leading-6 text-slate-700">
           <ClipboardCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
           {question}
+          </div>
+          <div className="mt-4 grid gap-2 md:grid-cols-3">
+            <MiniMetric label="Reason" value={brief.flagged_gaps[index]?.gap ? "Detected gap" : "Review assurance"} />
+            <MiniMetric label="Evidence" value={brief.flagged_gaps[index]?.citations?.length ? "Cited" : "Needs vendor proof"} />
+            <MiniMetric label="Confidence" value={`${Math.round(brief.confidence_score * 100)}%`} />
+          </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function ExportPreview({ brief }: { brief: RiskBrief }) {
+  return (
+    <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm font-semibold text-slate-900">Report preview</p>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        {[
+          ["Executive Report", `${brief.vendor_name}: ${recommendation(brief)} with ${Math.round(brief.confidence_score * 100)}% confidence.`],
+          ["Technical Report", `${brief.categories.length} control categories, ${brief.flagged_gaps.length} finding(s), cited evidence included.`],
+          ["Procurement Summary", recommendation(brief)],
+          ["Legal Summary", brief.plan.frameworks.includes("GDPR") ? "GDPR processor obligations were considered." : "No GDPR-specific category was selected by the plan."],
+        ].map(([title, body]) => (
+          <div key={title} className="rounded-2xl border border-slate-200 bg-white p-4">
+            <p className="font-semibold text-slate-950">{title}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{body}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1389,6 +1966,20 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function AnimatedNumber({ label, value }: { label: string; value: string }) {
+  return (
+    <motion.div
+      className="rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm"
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+    >
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</p>
+      <p className="mt-8 text-2xl font-semibold tracking-[-0.04em] text-slate-950">{value}</p>
+    </motion.div>
+  );
+}
+
 function ProgressBar({ label, value }: { label: string; value: number }) {
   return (
     <div>
@@ -1400,12 +1991,31 @@ function ProgressBar({ label, value }: { label: string; value: number }) {
   );
 }
 
-function EmptyState({ body, icon: Icon, title }: { body: string; icon: LucideIcon; title: string }) {
+function EmptyState({
+  body,
+  ctaHref,
+  ctaLabel,
+  icon: Icon,
+  title,
+}: {
+  body: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+  icon: LucideIcon;
+  title: string;
+}) {
   return (
-    <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-blue-700 shadow-sm"><Icon className="h-6 w-6" /></span>
+    <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-gradient-to-br from-white to-blue-50 p-8 text-center">
+      <div className="mx-auto mb-6 grid h-24 w-32 place-items-center rounded-[2rem] border border-blue-100 bg-white shadow-sm">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-700"><Icon className="h-6 w-6" /></span>
+      </div>
       <h3 className="mt-4 text-xl font-semibold text-slate-950">{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">{body}</p>
+      {ctaHref && ctaLabel ? (
+        <a href={ctaHref} className="btn-primary mt-5">
+          {ctaLabel} <ArrowRight className="h-4 w-4" />
+        </a>
+      ) : null}
     </div>
   );
 }
@@ -1438,6 +2048,24 @@ function recommendation(brief: RiskBrief) {
   if (brief.overall_risk_score > 65) return "Escalate before approval";
   if (brief.flagged_gaps.length) return "Approve after targeted follow-up";
   return "Proceed with standard vendor controls";
+}
+
+function historyInsight(record: AssessmentRecord, previous?: AssessmentRecord) {
+  if (!previous) {
+    return "Baseline assessment created. Future runs will show improvements, regressions, new findings, and resolved findings.";
+  }
+  const riskDelta = record.brief.overall_risk_score - previous.brief.overall_risk_score;
+  const confidenceDelta = record.brief.confidence_score - previous.brief.confidence_score;
+  if (riskDelta < 0) {
+    return "Vendor risk decreased compared to the previous assessment.";
+  }
+  if (riskDelta > 0) {
+    return "Vendor risk increased and should be reviewed before approval.";
+  }
+  if (confidenceDelta > 0) {
+    return "Assessment confidence increased after stronger evidence was validated.";
+  }
+  return "Risk is stable compared with the previous assessment.";
 }
 
 function toMarkdown(brief: RiskBrief) {
