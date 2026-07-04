@@ -4,6 +4,19 @@ import { FormEvent, useState } from "react";
 
 import { RiskBrief, submitAssessment } from "../lib/api";
 
+const FEATURES = [
+  { icon: "🧭", title: "Plans frameworks", copy: "SOC2, ISO 27001 & GDPR" },
+  { icon: "🔍", title: "Two-pass retrieval", copy: "Evidence + cross-reference" },
+  { icon: "📊", title: "Deterministic scores", copy: "Auditable, never LLM-guessed" },
+] as const;
+
+const STEPS = [
+  "Plan applicable frameworks & control categories",
+  "Retrieve SOC2 control descriptions, results & opinion",
+  "Cross-reference questionnaire answers against evidence",
+  "Query breach history and apply deterministic scoring",
+] as const;
+
 export default function Home() {
   const [brief, setBrief] = useState<RiskBrief | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,18 +42,35 @@ export default function Home() {
   return (
     <main className="page">
       <section className="hero">
-        <div className="eyebrow">Vultr hackathon demo</div>
-        <h1>Vendor Risk Assessment Agent</h1>
-        <p>
-          Upload a SOC2 Type II report, a completed questionnaire, and optional breach context.
-          The agent plans frameworks, retrieves evidence twice, calls a breach-history tool, and
-          produces deterministic scores with citations.
+        <div className="eyebrow">
+          <span className="dot" /> Powered by Vultr Serverless Inference
+        </div>
+        <h1>
+          Vendor risk briefs,<br />
+          <span className="gradient-text">agentically generated.</span>
+        </h1>
+        <p className="lede">
+          Upload a SOC2 Type II report, a completed security questionnaire, and optional breach
+          context. The agent plans frameworks, retrieves evidence in two passes, calls a
+          breach-history tool, and returns a deterministic risk brief with per-control citations.
         </p>
+        <div className="feature-row">
+          {FEATURES.map((feature) => (
+            <div className="feature" key={feature.title}>
+              <span className="feature-icon" aria-hidden>{feature.icon}</span>
+              <div>
+                <strong>{feature.title}</strong>
+                <span>{feature.copy}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="grid">
         <form className="card form" onSubmit={onSubmit}>
           <h2>Run assessment</h2>
+          <p className="form-hint">Deterministic scoring — the LLM never assigns risk scores.</p>
           <div className="field">
             <label htmlFor="vendor_name">Vendor name</label>
             <input id="vendor_name" name="vendor_name" type="text" placeholder="Acme Cloud" required />
@@ -71,6 +101,11 @@ export default function Home() {
           {brief ? <RiskBriefView brief={brief} /> : <EmptyState />}
         </div>
       </section>
+
+      <footer className="footer">
+        <span>Vendor Risk Assessment Agent</span>
+        <span>Built for the Vultr track · deterministic scoring engine</span>
+      </footer>
     </main>
   );
 }
@@ -78,11 +113,23 @@ export default function Home() {
 function EmptyState() {
   return (
     <div className="card stack">
-      <h2>Structured risk brief</h2>
+      <div>
+        <div className="eyebrow">Structured risk brief</div>
+        <h2>How the agent works</h2>
+      </div>
       <p>
-        Results will show the selected frameworks, overall risk score, per-category findings,
-        citations, breach conflicts, confidence scores, and follow-up questions.
+        Submit the form to generate a brief with selected frameworks, an overall risk score,
+        per-category findings, citations, breach conflicts, confidence scores, and follow-up
+        questions.
       </p>
+      <ol className="steps">
+        {STEPS.map((step, index) => (
+          <li key={step}>
+            <span className="step-index">{index + 1}</span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
