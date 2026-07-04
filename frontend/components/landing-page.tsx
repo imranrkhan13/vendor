@@ -20,7 +20,6 @@ import {
   FileCheck2,
   FileJson,
   FileText,
-  Filter,
   GitBranch,
   History,
   Layers3,
@@ -110,23 +109,6 @@ const defaultFrameworks: FrameworkControl[] = [
     title: "Security of Processing",
     description: "Appropriate technical and organizational measures protect personal data.",
   },
-];
-
-const storySteps = [
-  "Upload a SOC2 report.",
-  "Cross-check vendor claims.",
-  "Generate a complete risk assessment in minutes.",
-];
-
-const productSections = [
-  ["Problem", "Vendor reviews are split across PDFs, spreadsheets, inboxes, and breach searches."],
-  ["How it works", "The agent plans, retrieves evidence twice, calls tools, scores deterministically, and produces a cited brief."],
-  ["Architecture", "Parser, framework registry, planning agent, retriever, scoring engine, FastAPI, and Next.js stay separate."],
-  ["Workflow", "A live reasoning trace shows every step from upload to risk brief."],
-  ["Supported frameworks", "SOC2, ISO 27001, and GDPR mappings normalize controls into comparable categories."],
-  ["Risk preview", "Security teams see risk, confidence, missing controls, follow-ups, and citations together."],
-  ["Comparison", "Compare vendors by controls, breaches, confidence, and recommendation."],
-  ["Enterprise ready", "History, exports, evidence explorer, and monitoring prepare the demo for real vendor operations."],
 ];
 
 const fadeUp = {
@@ -350,15 +332,16 @@ function Hero() {
       <div className="absolute left-1/2 top-16 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/45 blur-3xl" />
       <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ duration: 0.7 }}>
         <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-700">
-          Vendor reviews are still manual
+          Business risk hides inside vendor paperwork
         </p>
         <h1 className="mt-7 max-w-5xl text-6xl font-semibold tracking-[-0.075em] text-slate-950 md:text-8xl lg:text-[7.4rem] lg:leading-[0.86]">
-          Stop reading
-          <span className="block text-slate-400">150-page</span>
-          SOC2 reports.
+          Know the risk
+          <span className="block text-slate-400">before the deal</span>
+          slows down.
         </h1>
         <p className="mt-8 max-w-2xl text-2xl leading-9 tracking-[-0.03em] text-slate-600 md:text-3xl">
-          Read the evidence, not the paperwork.
+          Vendor approval should not depend on a two-week scavenger hunt through PDFs, spreadsheets,
+          email, Slack, and meetings.
         </p>
         <div className="mt-9 flex flex-wrap items-center gap-4 text-lg font-medium text-slate-500">
           {["Upload.", "Analyze.", "Decide."].map((item, index) => (
@@ -394,10 +377,10 @@ function PainfulReviewIllustration() {
       <div className="absolute -right-8 bottom-10 h-56 w-56 rounded-full bg-blue-200/50 blur-3xl" />
       <div className="relative min-h-[520px]">
         {[
-          ["150-page SOC2", "Manual reading", FileText, "left-0 top-10 rotate-[-6deg]"],
-          ["Security spreadsheet", "Claims to compare", Table2, "right-2 top-28 rotate-[5deg]"],
-          ["Email thread", "Waiting on answers", GitBranch, "left-10 bottom-24 rotate-[4deg]"],
-          ["Approval meeting", "Decision delayed", Clock3, "right-14 bottom-8 rotate-[-4deg]"],
+          ["Vendor sends documents", "The deal clock starts", FileText, "left-0 top-10 rotate-[-6deg]"],
+          ["Security spreadsheet", "Claims to reconcile", Table2, "right-2 top-28 rotate-[5deg]"],
+          ["Email and Slack", "Context gets scattered", GitBranch, "left-10 bottom-24 rotate-[4deg]"],
+          ["Approval meeting", "Business waits", Clock3, "right-14 bottom-8 rotate-[-4deg]"],
         ].map(([title, body, Icon, position], index) => (
           <motion.div
             key={title as string}
@@ -418,7 +401,7 @@ function PainfulReviewIllustration() {
           <div className="rounded-[1.5rem] bg-gradient-to-br from-blue-600 to-indigo-600 p-5 text-white">
             <Brain className="h-7 w-7" />
             <p className="mt-16 text-sm uppercase tracking-[0.18em] text-blue-100">One upload</p>
-            <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">Risk brief in minutes</h3>
+            <h3 className="mt-2 text-3xl font-semibold tracking-[-0.05em]">Decision-ready brief</h3>
           </div>
         </motion.div>
       </div>
@@ -499,7 +482,7 @@ function PainToAutomation() {
             >
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-700">{item}</p>
               <p className="mt-5 text-3xl font-semibold tracking-[-0.05em] text-slate-950">
-                {index === 2 ? "30 seconds" : index === 1 ? "Cited" : "One file set"}
+                {index === 2 ? "Decision-ready" : index === 1 ? "Cited" : "One file set"}
               </p>
             </motion.div>
           ))}
@@ -609,7 +592,7 @@ function InteractiveAssessmentStory() {
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600"
               initial={{ width: "18%" }}
-              whileInView={{ width: "78%" }}
+              whileInView={{ width: "72%" }}
               viewport={{ once: true }}
               transition={{ duration: 1.2 }}
             />
@@ -859,11 +842,11 @@ function Dashboard({ metrics, records }: { metrics: ReturnType<typeof buildMetri
   return (
     <div className="mt-12">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <MetricCard title="Assessments" value={String(metrics.assessments)} icon={ClipboardCheck} tone="blue" />
-        <MetricCard title="Average Risk" value={`${metrics.averageRisk}/100`} icon={ShieldAlert} tone="amber" />
+        <MetricCard title="Vendors Reviewed" value={String(metrics.vendors)} icon={ClipboardCheck} tone="blue" />
+        <MetricCard title="Average Vendor Risk" value={`${metrics.averageRisk}/100`} icon={ShieldAlert} tone="amber" />
         <MetricCard title="Critical Findings" value={String(metrics.criticalFindings)} icon={ShieldQuestion} tone="red" />
         <MetricCard title="Framework Coverage" value={`${metrics.frameworkCoverage}%`} icon={Layers3} tone="indigo" />
-        <MetricCard title="Confidence Score" value={`${metrics.confidence}%`} icon={Sparkles} tone="green" />
+        <MetricCard title="Assessment Confidence" value={`${metrics.confidence}%`} icon={Sparkles} tone="green" />
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <Card>
@@ -875,7 +858,82 @@ function Dashboard({ metrics, records }: { metrics: ReturnType<typeof buildMetri
           <RiskDistribution records={records} />
         </Card>
       </div>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <DashboardInsights records={records} metrics={metrics} />
+        <OperationalFocus records={records} />
+      </div>
     </div>
+  );
+}
+
+function DashboardInsights({
+  metrics,
+  records,
+}: {
+  metrics: ReturnType<typeof buildMetrics>;
+  records: AssessmentRecord[];
+}) {
+  const latest = records[0];
+  const insights = records.length
+    ? [
+        metrics.highRiskVendors
+          ? `${metrics.highRiskVendors} vendor assessment(s) need executive review before approval.`
+          : "No high-risk vendors are currently in the saved assessment history.",
+        latest
+          ? `${latest.brief.vendor_name} is the most recent assessment; recommended next step: ${recommendation(latest.brief).toLowerCase()}.`
+          : "",
+        metrics.commonFinding
+          ? `Most common attention area: ${metrics.commonFinding}.`
+          : "No recurring finding pattern has emerged yet.",
+      ].filter(Boolean)
+    : [
+        "Upload your first vendor package to see business risk, confidence, and evidence insights here.",
+        "The dashboard only summarizes real assessment results generated by the application.",
+      ];
+
+  return (
+    <Card>
+      <CardHeader icon={Sparkles} title="Decision insights" subtitle="What needs attention now, based only on saved assessments." />
+      <div className="mt-6 grid gap-3">
+        {insights.map((insight) => (
+          <div key={insight} className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4 text-sm leading-6 text-blue-900">
+            {insight}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function OperationalFocus({ records }: { records: AssessmentRecord[] }) {
+  const commonMissing = mostCommon(
+    records.flatMap((record) => record.brief.flagged_gaps.map((gap) => gap.category.replaceAll("_", " "))),
+  );
+  const recent = records.slice(0, 4);
+
+  return (
+    <Card>
+      <CardHeader icon={Activity} title="Operational focus" subtitle="What is improving, what is getting worse, and what is commonly missing." />
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <MiniMetric label="Approval Rate" value={records.length ? `${approvalRate(records)}%` : "No data"} />
+        <MiniMetric label="Most Common Missing Control" value={commonMissing || "No recurring gap"} />
+      </div>
+      <div className="mt-5 grid gap-3">
+        {recent.length ? recent.map((record) => (
+          <div key={record.id} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div>
+              <p className="font-semibold text-slate-900">{record.brief.vendor_name}</p>
+              <p className="mt-1 text-sm text-slate-500">{recommendation(record.brief)}</p>
+            </div>
+            <RiskBadge level={record.brief.overall_risk_level} score={record.brief.overall_risk_score} />
+          </div>
+        )) : (
+          <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+            Recent vendors will appear here after completed assessments.
+          </p>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -1249,6 +1307,21 @@ function AssessmentRight({
         <button onClick={copyShareLink} className="btn-secondary"><LinkIcon className="h-4 w-4" /> Share link</button>
       </div>
       <ExportPreview brief={brief} />
+      <Collapsible title="Executive Summary" icon={BookOpenCheck} defaultOpen>
+        <ExecutiveSummaryView brief={brief} />
+      </Collapsible>
+      <Collapsible title="Business Risk" icon={Scale} defaultOpen>
+        <BusinessRiskView brief={brief} />
+      </Collapsible>
+      <Collapsible title="Technical Findings" icon={ShieldAlert} defaultOpen>
+        <TechnicalReview brief={brief} />
+      </Collapsible>
+      <Collapsible title="Compliance Status" icon={Layers3} defaultOpen>
+        <ComplianceDashboard brief={brief} />
+      </Collapsible>
+      <Collapsible title="Procurement Summary" icon={ClipboardCheck} defaultOpen>
+        <ProcurementSummary brief={brief} />
+      </Collapsible>
       <Collapsible title="Evidence Viewer" icon={Eye} defaultOpen>
         <EvidenceExplorer brief={brief} selectedCitation={selectedCitation} setSelectedCitation={setSelectedCitation} />
         <CitationPreview citation={selectedCitation} pdfUrl={pdfUrl} />
@@ -1270,6 +1343,12 @@ function AssessmentRight({
       <Collapsible title="Recommendations and generated questions" icon={ClipboardCheck} defaultOpen>
         <GeneratedQuestions brief={brief} />
       </Collapsible>
+      <Collapsible title="Assessment Timeline" icon={History} defaultOpen>
+        <AssessmentEventTimeline record={record} />
+      </Collapsible>
+      <Collapsible title="Audit Trail" icon={FileArchive}>
+        <AuditTrail record={record} />
+      </Collapsible>
       <Collapsible title="Confidence breakdown" icon={Sparkles} defaultOpen>
         <p className="text-sm leading-6 text-slate-600">{brief.confidence_breakdown.formula}</p>
         <p className="mt-3 text-sm leading-6 text-slate-600">
@@ -1283,6 +1362,138 @@ function AssessmentRight({
           <MiniMetric label="Missing" value={String(brief.confidence_breakdown.no_evidence_controls)} />
         </div>
       </Collapsible>
+    </div>
+  );
+}
+
+function ExecutiveSummaryView({ brief }: { brief: RiskBrief }) {
+  const approve = brief.overall_risk_score <= 35 && !brief.flagged_gaps.length;
+  const reject = brief.overall_risk_score > 75;
+  const conditional = !approve && !reject;
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+        <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-400">Board-friendly answer</p>
+        <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-slate-950">
+          {approve ? "Approve with standard controls." : reject ? "Reject or escalate before contract execution." : "Approve only after targeted follow-up."}
+        </h3>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          {brief.vendor_name} is currently assessed as {brief.overall_risk_level} risk with {Math.round(brief.confidence_score * 100)}% assessment confidence.
+        </p>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <MiniMetric label="Should we approve?" value={approve ? "Yes" : "Not yet"} />
+        <MiniMetric label="Approve with conditions?" value={conditional ? "Yes" : "No"} />
+        <MiniMetric label="Reject?" value={reject ? "Consider" : "No"} />
+      </div>
+      <InsightList
+        items={[
+          brief.flagged_gaps[0]?.gap || "No critical gap was detected in the current evidence set.",
+          brief.breach_history.length ? "Breach history is part of the decision and should be reviewed." : "No breach-history record was returned for this assessment.",
+          `Recommended next step: ${recommendation(brief).toLowerCase()}.`,
+        ]}
+      />
+    </div>
+  );
+}
+
+function BusinessRiskView({ brief }: { brief: RiskBrief }) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <RiskWheel score={brief.overall_risk_score} />
+      <div className="grid gap-3">
+        <MiniMetric label="Business Impact" value={brief.overall_risk_score > 65 ? "High approval risk" : brief.flagged_gaps.length ? "Conditional risk" : "Standard review"} />
+        <MiniMetric label="Security Impact" value={brief.flagged_gaps.length ? `${brief.flagged_gaps.length} issue(s) to validate` : "No flagged gaps"} />
+        <MiniMetric label="Compliance Impact" value={brief.plan.frameworks.join(", ")} />
+        <MiniMetric label="Suggested Action" value={recommendation(brief)} />
+      </div>
+    </div>
+  );
+}
+
+function TechnicalReview({ brief }: { brief: RiskBrief }) {
+  const domains: Array<[string, string[]]> = [
+    ["Encryption", ["encryption", "data_protection"]],
+    ["Access management", ["access", "identity", "mfa"]],
+    ["Audit logging", ["logging", "monitoring"]],
+    ["Incident response", ["incident", "breach", "response"]],
+    ["Backups", ["backup", "availability"]],
+    ["Disaster recovery", ["disaster", "recovery", "availability"]],
+    ["Identity controls", ["identity", "access_control"]],
+    ["Data retention", ["retention", "processor_obligations"]],
+    ["Third-party dependencies", ["subprocessor", "third", "processor"]],
+  ];
+
+  return (
+    <div className="grid gap-3">
+      {domains.map(([domain, keywords]) => {
+        const relatedFindings = brief.categories.filter((finding) =>
+          keywords.some((keyword) => `${finding.category} ${finding.rationale}`.toLowerCase().includes(keyword)),
+        );
+        const hasGap = relatedFindings.some((finding) => finding.gaps.length);
+        const hasEvidence = relatedFindings.some((finding) => finding.citations.length);
+        return (
+          <div key={domain as string} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="font-semibold text-slate-950">{domain as string}</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {hasEvidence ? "Evidence found in the current assessment." : "No direct evidence was matched in this assessment."}
+                </p>
+              </div>
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${hasGap ? "bg-amber-100 text-amber-700" : hasEvidence ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
+                {hasGap ? "Needs review" : hasEvidence ? "Supported" : "No evidence"}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ComplianceDashboard({ brief }: { brief: RiskBrief }) {
+  const frameworks = ["SOC2", "ISO27001", "GDPR", "NIST"];
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      {frameworks.map((framework) => {
+        const active = brief.plan.frameworks.includes(framework);
+        const mapped = brief.categories.filter((finding) =>
+          finding.citations.some((citation) => citation.quote.toLowerCase().includes(framework.toLowerCase())) || active,
+        );
+        const missing = brief.confidence_breakdown.no_evidence_controls;
+        const risk = active ? brief.overall_risk_level : "not selected";
+        return (
+          <div key={framework} className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-slate-950">{framework}</p>
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${active ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-500"}`}>
+                {active ? "In scope" : "Not selected"}
+              </span>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <MiniMetric label="Coverage" value={active ? `${Math.round(brief.confidence_score * 100)}%` : "N/A"} />
+              <MiniMetric label="Missing Controls" value={active ? String(missing) : "N/A"} />
+              <MiniMetric label="Mapped Controls" value={active ? String(mapped.length || brief.categories.length) : "0"} />
+              <MiniMetric label="Risk" value={risk} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ProcurementSummary({ brief }: { brief: RiskBrief }) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <MiniMetric label="Vendor Maturity" value={brief.confidence_score > 0.75 ? "Evidence mature" : brief.confidence_score > 0.5 ? "Partially evidenced" : "Needs validation"} />
+      <MiniMetric label="Risk Level" value={brief.overall_risk_level} />
+      <MiniMetric label="Required Follow-up" value={brief.follow_up_questions.length ? `${brief.follow_up_questions.length} question(s)` : "None generated"} />
+      <MiniMetric label="Estimated Review Completion" value={brief.flagged_gaps.length ? "After vendor response" : "Ready for decision"} />
+      <div className="md:col-span-2">
+        <InsightList items={brief.follow_up_questions.length ? brief.follow_up_questions : ["No additional procurement follow-up was generated from the current evidence."]} />
+      </div>
     </div>
   );
 }
@@ -1854,6 +2065,52 @@ function RiskTimeline({
   );
 }
 
+function AssessmentEventTimeline({ record }: { record: AssessmentRecord }) {
+  const events = assessmentEvents(record);
+  return (
+    <div className="relative grid gap-4">
+      <div className="absolute bottom-8 left-4 top-4 w-px bg-slate-200" />
+      {events.map((event, index) => (
+        <div key={event.title} className="relative ml-9 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <span className="absolute -left-[2.35rem] top-5 h-3.5 w-3.5 rounded-full border-4 border-white bg-blue-600" />
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{event.time}</p>
+          <p className="mt-1 font-semibold text-slate-950">{event.title}</p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">{event.body}</p>
+          {index === events.length - 1 ? (
+            <span className="mt-3 inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+              Completed
+            </span>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AuditTrail({ record }: { record: AssessmentRecord }) {
+  const events = [
+    "Document uploaded",
+    "Assessment started",
+    "Evidence matched",
+    "Risk calculated",
+    "Recommendation generated",
+    "Assessment completed",
+  ];
+  return (
+    <div className="grid gap-3">
+      {events.map((event, index) => (
+        <div key={event} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <span className="text-sm font-medium text-slate-800">{event}</span>
+          </div>
+          <span className="text-xs text-slate-500">{formatAuditTime(record.createdAt, index)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Collapsible({ children, defaultOpen = false, icon: Icon, title }: { children: ReactNode; defaultOpen?: boolean; icon: LucideIcon; title: string }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -1863,6 +2120,51 @@ function Collapsible({ children, defaultOpen = false, icon: Icon, title }: { chi
         <ChevronDown className={`h-4 w-4 text-slate-400 transition ${open ? "rotate-180" : ""}`} />
       </button>
       {open ? <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="border-t border-slate-100 px-4 py-4">{children}</motion.div> : null}
+    </div>
+  );
+}
+
+function RiskWheel({ score }: { score: number }) {
+  const circumference = 2 * Math.PI * 42;
+  const offset = circumference - (score / 100) * circumference;
+  const color = score > 65 ? "#DC2626" : score > 35 ? "#F59E0B" : "#16A34A";
+  return (
+    <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+      <p className="text-sm font-semibold text-slate-900">Risk wheel</p>
+      <div className="mt-4 flex items-center justify-center">
+        <svg viewBox="0 0 120 120" className="h-44 w-44">
+          <circle cx="60" cy="60" r="42" fill="none" stroke="#E5E7EB" strokeWidth="12" />
+          <motion.circle
+            cx="60"
+            cy="60"
+            r="42"
+            fill="none"
+            stroke={color}
+            strokeLinecap="round"
+            strokeWidth="12"
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            whileInView={{ strokeDashoffset: offset }}
+            viewport={{ once: true }}
+            transform="rotate(-90 60 60)"
+          />
+          <text x="60" y="58" textAnchor="middle" fontSize="24" fontWeight="700" fill="#0F172A">{score}</text>
+          <text x="60" y="77" textAnchor="middle" fontSize="10" fontWeight="700" fill="#64748B">/ 100</text>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function InsightList({ items }: { items: string[] }) {
+  return (
+    <div className="grid gap-3">
+      {items.map((item) => (
+        <div key={item} className="flex gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+          {item}
+        </div>
+      ))}
     </div>
   );
 }
@@ -2035,13 +2337,31 @@ function yesNo(value: boolean) {
 
 function buildMetrics(records: AssessmentRecord[]) {
   const assessments = records.length;
+  const vendors = new Set(records.map((record) => record.brief.vendor_name)).size;
   const averageRisk = assessments ? Math.round(records.reduce((sum, record) => sum + record.brief.overall_risk_score, 0) / assessments) : 0;
   const criticalFindings = records.reduce((sum, record) => sum + record.brief.flagged_gaps.length, 0);
   const frameworkCoverage = assessments
     ? Math.round(records.reduce((sum, record) => sum + record.brief.plan.frameworks.length, 0) / (assessments * 3) * 100)
     : 0;
   const confidence = assessments ? Math.round(records.reduce((sum, record) => sum + record.brief.confidence_score, 0) / assessments * 100) : 0;
-  return { assessments, averageRisk, confidence, criticalFindings, frameworkCoverage };
+  const highRiskVendors = records.filter((record) => record.brief.overall_risk_level === "high").length;
+  const commonFinding = mostCommon(records.flatMap((record) => record.brief.flagged_gaps.map((gap) => gap.category.replaceAll("_", " "))));
+  return { assessments, averageRisk, commonFinding, confidence, criticalFindings, frameworkCoverage, highRiskVendors, vendors };
+}
+
+function mostCommon(values: string[]) {
+  if (!values.length) return "";
+  const counts = values.reduce<Record<string, number>>((acc, value) => {
+    acc[value] = (acc[value] || 0) + 1;
+    return acc;
+  }, {});
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+}
+
+function approvalRate(records: AssessmentRecord[]) {
+  if (!records.length) return 0;
+  const approved = records.filter((record) => record.brief.overall_risk_score <= 65).length;
+  return Math.round((approved / records.length) * 100);
 }
 
 function recommendation(brief: RiskBrief) {
@@ -2066,6 +2386,30 @@ function historyInsight(record: AssessmentRecord, previous?: AssessmentRecord) {
     return "Assessment confidence increased after stronger evidence was validated.";
   }
   return "Risk is stable compared with the previous assessment.";
+}
+
+function assessmentEvents(record: AssessmentRecord) {
+  const brief = record.brief;
+  return [
+    ["Vendor submitted documents", `${brief.vendor_name} assessment package was accepted for review.`],
+    ["SOC2 parsed", "The report was converted into page-grounded evidence chunks."],
+    ["Questionnaire analyzed", `${brief.categories.length} control category assessment(s) were prepared.`],
+    ["Evidence matched", `${brief.confidence_breakdown.direct_evidence_controls} category assessment(s) have direct evidence.`],
+    ["Risk calculated", `Overall vendor risk is ${brief.overall_risk_score}/100.`],
+    ["Recommendations generated", `${brief.follow_up_questions.length} follow-up question(s) were generated.`],
+    ["Executive summary", recommendation(brief)],
+    ["Final decision", `${brief.overall_risk_level} risk with ${Math.round(brief.confidence_score * 100)}% confidence.`],
+  ].map(([title, body], index) => ({
+    title,
+    body,
+    time: formatAuditTime(record.createdAt, index),
+  }));
+}
+
+function formatAuditTime(createdAt: string, offsetSeconds: number) {
+  const date = new Date(createdAt);
+  date.setSeconds(date.getSeconds() + offsetSeconds * 12);
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
 function toMarkdown(brief: RiskBrief) {
