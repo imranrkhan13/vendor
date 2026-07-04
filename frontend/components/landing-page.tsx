@@ -477,46 +477,75 @@ function ReasoningSection() {
 
 function EvidenceGraphSection() {
   const nodes = [
-    ["Evidence", "left-[42%] top-[40%] bg-blue-600 text-white"],
-    ["SOC2", "left-[12%] top-[16%] bg-white text-slate-950"],
-    ["ISO27001", "right-[14%] top-[18%] bg-white text-slate-950"],
-    ["GDPR", "left-[18%] bottom-[16%] bg-white text-slate-950"],
-    ["Recommendations", "right-[12%] bottom-[18%] bg-white text-slate-950"],
-    ["Controls", "left-[44%] top-[8%] bg-white text-slate-950"],
-    ["Confidence", "left-[43%] bottom-[8%] bg-white text-slate-950"],
+    { label: "Evidence", detail: "Source excerpts", x: 50, y: 50, primary: true },
+    { label: "SOC2", detail: "Audit pages", x: 18, y: 22 },
+    { label: "ISO 27001", detail: "Mapped controls", x: 79, y: 20 },
+    { label: "GDPR", detail: "Data obligations", x: 20, y: 78 },
+    { label: "Recommendations", detail: "Action plan", x: 79, y: 76 },
+    { label: "Controls", detail: "CC6 · CC7 · A1", x: 50, y: 15 },
+    { label: "Confidence", detail: "Explained score", x: 50, y: 86 },
+    { label: "Questionnaire", detail: "Vendor claims", x: 9, y: 50 },
+    { label: "Breach history", detail: "External signals", x: 91, y: 50 },
   ];
+  const links = nodes.filter((node) => !node.primary).map((node) => [50, 50, node.x, node.y]);
   return (
     <StorySection eyebrow="Evidence graph" title="Controls, evidence, frameworks, and recommendations stay connected.">
-      <div className="relative mt-16 min-h-[620px] overflow-hidden rounded-[3rem] border border-slate-200 bg-gradient-to-br from-white to-blue-50 p-8 shadow-xl shadow-slate-200/60">
+      <div className="relative mt-16 min-h-[680px] overflow-hidden rounded-[3rem] border border-slate-200 bg-[radial-gradient(circle_at_50%_45%,rgba(37,99,235,0.16),transparent_22rem),linear-gradient(135deg,#ffffff,#eff6ff)] p-8 shadow-2xl shadow-blue-100/70">
+        <div className="absolute inset-0 opacity-60 [background-image:radial-gradient(circle_at_center,rgba(37,99,235,0.18)_1px,transparent_1px)] [background-size:28px_28px]" />
         <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
-          {[[50, 50, 20, 25], [50, 50, 80, 25], [50, 50, 23, 78], [50, 50, 78, 76], [50, 50, 50, 17], [50, 50, 50, 85]].map(([x1, y1, x2, y2], index) => (
+          <defs>
+            <linearGradient id="graphLine" x1="0" x2="1">
+              <stop offset="0%" stopColor="#93C5FD" stopOpacity="0.15" />
+              <stop offset="50%" stopColor="#2563EB" stopOpacity="0.65" />
+              <stop offset="100%" stopColor="#4F46E5" stopOpacity="0.15" />
+            </linearGradient>
+          </defs>
+          {links.map(([x1, y1, x2, y2], index) => (
             <motion.line
               key={index}
               x1={`${x1}%`}
               y1={`${y1}%`}
               x2={`${x2}%`}
               y2={`${y2}%`}
-              stroke="#93C5FD"
-              strokeWidth="2"
-              strokeDasharray="8 10"
+              stroke="url(#graphLine)"
+              strokeWidth="2.4"
+              strokeDasharray="10 12"
               initial={{ pathLength: 0, opacity: 0.2 }}
-              whileInView={{ pathLength: 1, opacity: 1 }}
+              whileInView={{ pathLength: 1, opacity: 0.95 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.08, duration: 0.8 }}
+              transition={{ delay: index * 0.07, duration: 1.1 }}
+            />
+          ))}
+          {links.map(([, , x2, y2], index) => (
+            <motion.circle
+              key={`pulse-${index}`}
+              r="4"
+              fill="#2563EB"
+              initial={{ cx: "50%", cy: "50%", opacity: 0 }}
+              animate={{ cx: [`50%`, `${x2}%`], cy: [`50%`, `${y2}%`], opacity: [0, 0.8, 0] }}
+              transition={{ duration: 2.8, repeat: Infinity, delay: index * 0.28, ease: "easeInOut" }}
             />
           ))}
         </svg>
-        {nodes.map(([label, position], index) => (
+        {nodes.map((node, index) => (
           <motion.button
-            key={label}
-            className={`absolute rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold shadow-xl transition hover:scale-105 ${position}`}
+            key={node.label}
+            className={`group absolute -translate-x-1/2 -translate-y-1/2 rounded-[1.35rem] border px-5 py-4 text-left shadow-xl backdrop-blur-xl transition hover:scale-105 ${
+              node.primary
+                ? "border-blue-500 bg-blue-600 text-white shadow-blue-300/70"
+                : "border-white/80 bg-white/85 text-slate-950 shadow-slate-200/80"
+            }`}
+            style={{ left: `${node.x}%`, top: `${node.y}%` }}
             initial={{ opacity: 0, scale: 0.85 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ delay: index * 0.07 }}
             type="button"
           >
-            {label}
+            <span className="block text-sm font-semibold">{node.label}</span>
+            <span className={`mt-1 block max-h-0 overflow-hidden text-xs transition-all group-hover:max-h-8 ${node.primary ? "text-blue-100" : "text-slate-500"}`}>
+              {node.detail}
+            </span>
           </motion.button>
         ))}
       </div>
@@ -594,21 +623,172 @@ function TransformationColumn({ items, muted = false, title }: { items: string[]
 }
 
 function AnimatedMetricsSection() {
-  const { scrollYProgress } = useScroll();
-  const risk = useTransform(scrollYProgress, [0.35, 0.65], ["18%", "64%"]);
+  const panels = [
+    {
+      title: "Risk evolution",
+      eyebrow: "Risk",
+      tone: "blue",
+      points: "4,72 20,64 36,58 52,43 68,38 84,31 96,28",
+      caption: "Risk becomes legible as evidence is linked.",
+    },
+    {
+      title: "Confidence growth",
+      eyebrow: "Confidence",
+      tone: "indigo",
+      points: "4,78 18,70 32,61 48,50 62,39 80,29 96,24",
+      caption: "Direct citations raise assessment confidence.",
+    },
+    {
+      title: "Framework coverage",
+      eyebrow: "Coverage",
+      tone: "emerald",
+      bars: [42, 68, 76, 88],
+      caption: "Mapped controls show what is covered.",
+    },
+    {
+      title: "Evidence completeness",
+      eyebrow: "Evidence",
+      tone: "amber",
+      rings: [82, 64, 48],
+      caption: "Missing proof is visible, not hidden.",
+    },
+  ];
   return (
     <StorySection eyebrow="Metrics" title="Risk, confidence, and evidence move as the review gets clearer.">
-      <div className="mt-16 grid gap-5 md:grid-cols-5">
-        {["Risk evolution", "Confidence growth", "Framework coverage", "Evidence completeness", "Assessment timeline"].map((metric, index) => (
-          <div key={metric} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold text-slate-700">{metric}</p>
-            <div className="mt-10 h-2 rounded-full bg-slate-100">
-              <motion.div className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600" style={{ width: index === 0 ? risk : `${42 + index * 10}%` }} />
-            </div>
-          </div>
+      <div className="mt-16 grid gap-5 md:grid-cols-2">
+        {panels.map((panel, index) => (
+          <MetricPanel key={panel.title} panel={panel} delay={index * 0.08} />
         ))}
       </div>
+      <div className="mt-5 rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">Assessment timeline</p>
+            <h3 className="mt-3 text-3xl font-semibold tracking-[-0.05em] text-slate-950">From upload to decision, every step is visible.</h3>
+          </div>
+          <p className="max-w-md text-sm leading-6 text-slate-500">This is not a static dashboard screenshot. The timeline animates the review becoming progressively more grounded.</p>
+        </div>
+        <div className="relative mt-8 grid gap-3 md:grid-cols-5">
+          <div className="absolute left-6 right-6 top-7 hidden h-px bg-gradient-to-r from-blue-100 via-blue-400 to-indigo-200 md:block" />
+          {["Upload", "Parse", "Match", "Score", "Decide"].map((step, index) => (
+            <motion.div
+              key={step}
+              className="relative rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center shadow-sm"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.08 }}
+            >
+              <span className="mx-auto flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white shadow-lg shadow-blue-200">{index + 1}</span>
+              <p className="mt-4 text-sm font-semibold text-slate-800">{step}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
     </StorySection>
+  );
+}
+
+function MetricPanel({
+  delay,
+  panel,
+}: {
+  delay: number;
+  panel: {
+    title: string;
+    eyebrow: string;
+    tone: string;
+    points?: string;
+    bars?: number[];
+    rings?: number[];
+    caption: string;
+  };
+}) {
+  const stroke = panel.tone === "emerald" ? "#16A34A" : panel.tone === "amber" ? "#F59E0B" : panel.tone === "indigo" ? "#4F46E5" : "#2563EB";
+  return (
+    <motion.div
+      className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60"
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay }}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{panel.eyebrow}</p>
+          <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-slate-950">{panel.title}</h3>
+        </div>
+        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: stroke, boxShadow: `0 0 24px ${stroke}66` }} />
+      </div>
+      <div className="mt-8 h-52 rounded-[2rem] bg-gradient-to-b from-slate-50 to-white p-5">
+        {panel.points ? (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+            <defs>
+              <linearGradient id={`${panel.tone}-fill`} x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor={stroke} stopOpacity="0.22" />
+                <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <motion.polyline
+              points={panel.points}
+              fill="none"
+              stroke={stroke}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+              initial={{ pathLength: 0 }}
+              whileInView={{ pathLength: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.4, delay }}
+            />
+            <polygon points={`4,100 ${panel.points} 96,100`} fill={`url(#${panel.tone}-fill)`} />
+          </svg>
+        ) : panel.bars ? (
+          <div className="flex h-full items-end gap-4">
+            {panel.bars.map((bar, index) => (
+              <div key={bar} className="flex flex-1 flex-col items-center gap-3">
+                <div className="flex h-36 w-full items-end rounded-full bg-slate-100 p-1">
+                  <motion.div
+                    className="w-full rounded-full"
+                    style={{ backgroundColor: stroke }}
+                    initial={{ height: 0 }}
+                    whileInView={{ height: `${bar}%` }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 1, delay: delay + index * 0.08 }}
+                  />
+                </div>
+                <span className="text-xs font-semibold text-slate-400">Q{index + 1}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex h-full items-center justify-center gap-5">
+            {panel.rings?.map((ring, index) => (
+              <svg key={ring} viewBox="0 0 120 120" className="h-28 w-28">
+                <circle cx="60" cy="60" r="44" fill="none" stroke="#E5E7EB" strokeWidth="12" />
+                <motion.circle
+                  cx="60"
+                  cy="60"
+                  r="44"
+                  fill="none"
+                  stroke={stroke}
+                  strokeLinecap="round"
+                  strokeWidth="12"
+                  strokeDasharray={276}
+                  initial={{ strokeDashoffset: 276 }}
+                  whileInView={{ strokeDashoffset: 276 - (ring / 100) * 276 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 1.1, delay: delay + index * 0.1 }}
+                  transform="rotate(-90 60 60)"
+                />
+              </svg>
+            ))}
+          </div>
+        )}
+      </div>
+      <p className="mt-4 text-sm leading-6 text-slate-500">{panel.caption}</p>
+    </motion.div>
   );
 }
 
