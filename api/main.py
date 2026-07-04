@@ -2,17 +2,40 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import re
 from collections.abc import AsyncIterator
+from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+import requests
 
 from agent.tools import query_breach_history
 from agent.workflow import VendorRiskAgent
 from frameworks.registry import FrameworkRegistry
 from parser.questionnaire import parse_questionnaire_file
 from parser.soc2 import parse_soc2_pdf
+
+
+class ChatCitation(BaseModel):
+    source: str
+    location: str
+    quote: str
+
+
+class ChatRequest(BaseModel):
+    question: str
+    citations: list[ChatCitation] = []
+    vendor_name: str | None = None
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    provider: str
+    citations: list[ChatCitation]
 
 
 app = FastAPI(
@@ -52,6 +75,32 @@ def frameworks() -> dict[str, object]:
             for control in registry.controls
         ],
     }
+
+
+@app.post("/chat")
+def chat_with_documents(request: ChatRequest) -> ChatResponse:
+    """Answer questions against cited assessment evidence without changing assessment logic."""
+
+    selected = _select_relevant_citations(request.question, request.citations)
+    provider = _first_configured_provider()
+    if provider:
+        try:
+            answer = _call_document_chat_provider(
+                provider=provider,
+                question=request.question,
+                citations=selected,
+                vendor_name=request.vendor_name,
+            )
+            return ChatResponse(answer=answer, provider=provider[0], citations=selected)
+        except Exception:
+            # Keep the chat usable during demos even when a provider key is absent, expired, or rate limited.
+            pass
+
+    return ChatResponse(
+        answer=_local_document_answer(request.question, selected, request.vendor_name),
+        provider="local-evidence-fallback",
+        citations=selected,
+    )
 
 
 @app.post("/assess")
@@ -192,3 +241,104 @@ def _trace_event(step: str, message: str, extra: dict[str, object] | None = None
     if extra:
         payload.update(extra)
     return f"data: {json.dumps(payload)}\n\n"
+
+
+def _first_configured_provider() -> tuple[str, str] | None:
+    for provider, env_name in (
+        ("gemini", "GEMINI_API"),
+        ("groq", "GROQ_API"),
+        ("cohere", "COHERE_API"),
+        ("mistral", "MISTRAL_API"),
+        ("openrouter", "OPENROUTER_API"),
+    ):
+        api_key = os.getenv(env_name)
+        if api_key:
+            return provider, api_key
+    return None
+
+
+def _select_relevant_citations(question: str, citations: list[ChatCitation], limit: int = 5) -> list[ChatCitation]:
+    terms = {term.lower() for term in re.findall(r"[a-zA-Z0-9]{3,}", question)}
+    scored: list[tuple[int, ChatCitation]] = []
+    for citation in citations:
+        haystack = f"{citation.source} {citation.location} {citation.quote}".lower()
+        score = sum(1 for term in terms if term in haystack)
+        scored.append((score, citation))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    selected = [citation for score, citation in scored if score > 0][:limit]
+    return selected or citations[:limit]
+
+
+def _local_document_answer(
+    question: str,
+    citations: list[ChatCitation],
+    vendor_name: str | None,
+) -> str:
+    if not citations:
+        return (
+            "I do not have cited evidence for that question yet. Run an assessment or select a finding "
+            "with citations, then ask again."
+        )
+
+    evidence_summary = " ".join(citation.quote for citation in citations[:3])
+    vendor_prefix = f"For {vendor_name}, " if vendor_name else ""
+    return (
+        f"{vendor_prefix}the available cited evidence most relevant to your question indicates: "
+        f"{evidence_summary[:900]}. Review the citations below for the exact source pages or rows."
+    )
+
+
+def _call_document_chat_provider(
+    provider: tuple[str, str],
+    question: str,
+    citations: list[ChatCitation],
+    vendor_name: str | None,
+) -> str:
+    provider_name, api_key = provider
+    evidence = "\n\n".join(
+        f"[{idx + 1}] {citation.source} {citation.location}: {citation.quote}"
+        for idx, citation in enumerate(citations)
+    )
+    prompt = (
+        "Answer as a compliance document analyst. Use only the evidence below. "
+        "If the evidence is insufficient, say what is missing. Include citation numbers.\n\n"
+        f"Vendor: {vendor_name or 'Unknown'}\nQuestion: {question}\nEvidence:\n{evidence}"
+    )
+
+    if provider_name == "gemini":
+        response = requests.post(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+            params={"key": api_key},
+            json={"contents": [{"parts": [{"text": prompt}]}]},
+            timeout=20,
+        )
+        response.raise_for_status()
+        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+
+    if provider_name == "cohere":
+        response = requests.post(
+            "https://api.cohere.com/v2/chat",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"model": "command-r-plus", "messages": [{"role": "user", "content": prompt}]},
+            timeout=20,
+        )
+        response.raise_for_status()
+        return response.json()["message"]["content"][0]["text"]
+
+    if provider_name in {"groq", "mistral", "openrouter"}:
+        endpoints: dict[str, tuple[str, str]] = {
+            "groq": ("https://api.groq.com/openai/v1/chat/completions", "llama-3.1-8b-instant"),
+            "mistral": ("https://api.mistral.ai/v1/chat/completions", "mistral-small-latest"),
+            "openrouter": ("https://openrouter.ai/api/v1/chat/completions", "openai/gpt-4o-mini"),
+        }
+        url, model = endpoints[provider_name]
+        response = requests.post(
+            url,
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0},
+            timeout=20,
+        )
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+
+    raise ValueError(f"Unsupported provider: {provider_name}")

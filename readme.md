@@ -57,6 +57,17 @@ The assessment workspace is organized like an enterprise audit review:
 - audit trail;
 - export preview and export actions.
 
+Additional enterprise product capabilities:
+
+- Share Report creates a secure demo share link and opens a printable consulting-style report page.
+- AI Chat with Documents answers questions against generated citations and uses the first configured
+  provider from `GEMINI_API`, `GROQ_API`, `COHERE_API`, `MISTRAL_API`, or `OPENROUTER_API`, with a
+  local cited-evidence fallback when no provider is configured.
+- Demo Mode loads a representative sample assessment for judge walkthroughs without requiring files.
+- Collaboration captures comments, teammate mentions, approvals, rejections, resolved findings, and
+  activity feed entries in the assessment workspace.
+- Smart follow-up questions are grouped for Vendor, Security, Legal, Procurement, and Engineering.
+
 ## Architecture diagram
 
 ```mermaid

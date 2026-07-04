@@ -63,6 +63,12 @@ export type TraceEvent = {
   brief?: RiskBrief;
 };
 
+export type DocumentChatResponse = {
+  answer: string;
+  provider: string;
+  citations: Citation[];
+};
+
 export async function submitAssessment(formData: FormData): Promise<RiskBrief> {
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
   const response = await fetch(`${apiBase}/assess`, {
@@ -130,4 +136,24 @@ export async function streamAssessmentTrace(
   }
 
   return brief;
+}
+
+export async function chatWithDocuments(input: {
+  question: string;
+  citations: Citation[];
+  vendor_name?: string;
+}): Promise<DocumentChatResponse> {
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const response = await fetch(`${apiBase}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Document chat failed");
+  }
+
+  return response.json();
 }

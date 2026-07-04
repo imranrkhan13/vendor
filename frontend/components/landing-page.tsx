@@ -13,6 +13,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   Clock3,
+  Check,
   Download,
   ExternalLink,
   Eye,
@@ -26,20 +27,23 @@ import {
   LineChart,
   Link as LinkIcon,
   LucideIcon,
+  MessageSquare,
   MonitorCheck,
   Network,
   Plus,
   Scale,
   Search,
+  Send,
   ShieldAlert,
   ShieldCheck,
   ShieldQuestion,
   Sparkles,
   Table2,
   UploadCloud,
+  X,
 } from "lucide-react";
 
-import { Citation, RiskBrief, TraceEvent, streamAssessmentTrace } from "../lib/api";
+import { Citation, DocumentChatResponse, RiskBrief, TraceEvent, chatWithDocuments, streamAssessmentTrace } from "../lib/api";
 
 type VendorDraft = {
   id: string;
@@ -55,6 +59,14 @@ type AssessmentRecord = {
   brief: RiskBrief;
 };
 
+type CollaborationItem = {
+  id: string;
+  author: string;
+  action: "comment" | "approved" | "rejected" | "resolved";
+  text: string;
+  createdAt: string;
+};
+
 type FrameworkControl = {
   framework: string;
   id: string;
@@ -65,6 +77,7 @@ type FrameworkControl = {
 
 const repoUrl = "https://github.com/imranrkhan13/vendor";
 const storageKey = "vendor-risk-assessment-history";
+const sharedReportPrefix = "vendor-risk-shared-report:";
 
 const defaultFrameworks: FrameworkControl[] = [
   {
@@ -134,6 +147,8 @@ export default function LandingPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [collaboration, setCollaboration] = useState<Record<string, CollaborationItem[]>>({});
 
   useEffect(() => {
     const saved = window.localStorage.getItem(storageKey);
@@ -254,9 +269,43 @@ export default function LandingPage() {
   }
 
   function copyShareLink() {
+    if (!activeRecord) return;
+    const token = crypto.randomUUID();
+    window.localStorage.setItem(`${sharedReportPrefix}${token}`, JSON.stringify(activeRecord));
     const url = new URL(window.location.href);
-    url.hash = activeRecord ? `assessment-${activeRecord.id}` : "dashboard";
+    url.pathname = `/report/${token}`;
+    url.hash = "";
     navigator.clipboard?.writeText(url.toString());
+    setShareStatus("Secure report link copied. It opens the consulting-style report view in this browser session.");
+    window.setTimeout(() => setShareStatus(null), 4000);
+  }
+
+  function loadDemoMode() {
+    const demoRecord = createDemoRecord();
+    setRecords((current) => [demoRecord, ...current]);
+    setActiveId(demoRecord.id);
+    setSelectedCitation(demoRecord.brief.categories[0]?.citations[0] ?? null);
+    setTrace([
+      { step: "demo", message: "Loaded a sample vendor package for product walkthrough." },
+      { step: "plan", message: "Selected SOC2, ISO27001, and GDPR control coverage." },
+      { step: "retrieve", message: "Matched cited evidence to access, logging, and availability controls." },
+      { step: "reason", message: "Computed deterministic risk and confidence from sample evidence." },
+      { step: "complete", message: "Demo assessment ready for review." },
+    ]);
+  }
+
+  function addCollaborationItem(recordId: string, item: Omit<CollaborationItem, "id" | "createdAt">) {
+    setCollaboration((current) => ({
+      ...current,
+      [recordId]: [
+        {
+          ...item,
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+        },
+        ...(current[recordId] || []),
+      ],
+    }));
   }
 
   return (
@@ -269,6 +318,10 @@ export default function LandingPage() {
       <ProductWorkspace
         activeRecord={activeRecord}
         copyShareLink={copyShareLink}
+        shareStatus={shareStatus}
+        loadDemoMode={loadDemoMode}
+        collaboration={collaboration}
+        addCollaborationItem={addCollaborationItem}
         drafts={drafts}
         error={error}
         exportRecord={exportRecord}
@@ -789,6 +842,8 @@ function PipelineStory() {
 
 function ProductWorkspace(props: {
   activeRecord: AssessmentRecord | null;
+  addCollaborationItem: (recordId: string, item: Omit<CollaborationItem, "id" | "createdAt">) => void;
+  collaboration: Record<string, CollaborationItem[]>;
   copyShareLink: () => void;
   drafts: VendorDraft[];
   error: string | null;
@@ -796,11 +851,13 @@ function ProductWorkspace(props: {
   filteredRecords: AssessmentRecord[];
   frameworks: FrameworkControl[];
   loading: boolean;
+  loadDemoMode: () => void;
   metrics: ReturnType<typeof buildMetrics>;
   pdfUrl: string | null;
   query: string;
   records: AssessmentRecord[];
   selectedCitation: Citation | null;
+  shareStatus: string | null;
   setActiveId: (id: string) => void;
   setDrafts: (drafts: VendorDraft[] | ((current: VendorDraft[]) => VendorDraft[])) => void;
   setQuery: (query: string) => void;
@@ -1079,16 +1136,51 @@ function DecisionMetric({ label, value, wide = false }: { label: string; value: 
   );
 }
 
+function RiskVisualizationPanel({ record }: { record: AssessmentRecord }) {
+  const brief = record.brief;
+  const severity = {
+    pass: brief.categories.filter((finding) => finding.status === "pass").length,
+    review: brief.categories.filter((finding) => finding.status === "review").length,
+    gap: brief.categories.filter((finding) => finding.status === "gap").length,
+  };
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-4">
+      <Card className="lg:col-span-1">
+        <RiskWheel score={brief.overall_risk_score} />
+      </Card>
+      <Card className="lg:col-span-3">
+        <CardHeader icon={BarChart3} title="Risk visualization" subtitle="Visual explanation of confidence, coverage, evidence completeness, and finding severity." />
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
+          <ProgressBar value={Math.round(brief.confidence_score * 100)} label="Assessment Confidence" />
+          <ProgressBar value={Math.round((brief.confidence_breakdown.direct_evidence_controls / Math.max(1, brief.confidence_breakdown.total_controls)) * 100)} label="Evidence Completeness" />
+          <ProgressBar value={Math.round((brief.plan.frameworks.length / 3) * 100)} label="Framework Coverage" />
+          <ProgressBar value={Math.round((brief.categories.length / Math.max(1, brief.plan.categories.length || brief.categories.length)) * 100)} label="Control Coverage" />
+        </div>
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          <MiniMetric label="Passed Findings" value={String(severity.pass)} />
+          <MiniMetric label="Needs Review" value={String(severity.review)} />
+          <MiniMetric label="Gaps" value={String(severity.gap)} />
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 function AssessmentWorkspace({
   activeRecord,
+  addCollaborationItem,
+  collaboration,
   copyShareLink,
   drafts,
   error,
   exportRecord,
   loading,
+  loadDemoMode,
   pdfUrl,
   records,
   selectedCitation,
+  shareStatus,
   setActiveId,
   setDrafts,
   setSelectedCitation,
@@ -1114,6 +1206,10 @@ function AssessmentWorkspace({
               <Plus className="h-4 w-4" />
               Add vendor
             </button>
+            <button type="button" onClick={loadDemoMode} className="btn-secondary justify-center">
+              <Sparkles className="h-4 w-4" />
+              Demo mode
+            </button>
             <button type="submit" disabled={loading} className="btn-primary justify-center disabled:cursor-not-allowed disabled:opacity-60">
               {loading ? "Assessing vendors" : "Generate assessments"}
               <ArrowRight className="h-4 w-4" />
@@ -1131,16 +1227,23 @@ function AssessmentWorkspace({
         {activeRecord ? (
           <div className="mt-6 grid gap-5">
             <DecisionPanel record={activeRecord} />
+            <RiskVisualizationPanel record={activeRecord} />
             <div className="grid gap-5 lg:grid-cols-[0.82fr_1.18fr]">
               <AssessmentLeft record={activeRecord} records={records} setActiveId={setActiveId} />
               <AssessmentRight
                 copyShareLink={copyShareLink}
                 exportRecord={exportRecord}
+              shareStatus={shareStatus}
                 pdfUrl={pdfUrl}
                 record={activeRecord}
                 selectedCitation={selectedCitation}
                 setSelectedCitation={setSelectedCitation}
               />
+            <CollaborationPanel
+              items={collaboration[activeRecord.id] || []}
+              onAdd={(item) => addCollaborationItem(activeRecord.id, item)}
+              record={activeRecord}
+            />
             </div>
           </div>
         ) : (
@@ -1289,6 +1392,7 @@ function AssessmentRight({
   record,
   selectedCitation,
   setSelectedCitation,
+  shareStatus,
 }: {
   copyShareLink: () => void;
   exportRecord: (format: "json" | "markdown" | "pdf", record?: AssessmentRecord | null) => void;
@@ -1296,6 +1400,7 @@ function AssessmentRight({
   record: AssessmentRecord;
   selectedCitation: Citation | null;
   setSelectedCitation: (citation: Citation) => void;
+  shareStatus: string | null;
 }) {
   const brief = record.brief;
   return (
@@ -1306,6 +1411,11 @@ function AssessmentRight({
         <button onClick={() => exportRecord("json", record)} className="btn-secondary"><FileJson className="h-4 w-4" /> JSON Evidence</button>
         <button onClick={copyShareLink} className="btn-secondary"><LinkIcon className="h-4 w-4" /> Share link</button>
       </div>
+      {shareStatus ? (
+        <div className="rounded-2xl border border-green-100 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+          {shareStatus}
+        </div>
+      ) : null}
       <ExportPreview brief={brief} />
       <Collapsible title="Executive Summary" icon={BookOpenCheck} defaultOpen>
         <ExecutiveSummaryView brief={brief} />
@@ -1325,6 +1435,9 @@ function AssessmentRight({
       <Collapsible title="Evidence Viewer" icon={Eye} defaultOpen>
         <EvidenceExplorer brief={brief} selectedCitation={selectedCitation} setSelectedCitation={setSelectedCitation} />
         <CitationPreview citation={selectedCitation} pdfUrl={pdfUrl} />
+      </Collapsible>
+      <Collapsible title="AI Chat with Documents" icon={MessageSquare} defaultOpen>
+        <DocumentChat brief={brief} selectedCitation={selectedCitation} setSelectedCitation={setSelectedCitation} />
       </Collapsible>
       <Collapsible title="Gap Analysis" icon={ShieldAlert} defaultOpen>
         <div className="grid gap-3">
@@ -1722,10 +1835,13 @@ function MonitoringAndExports({
       <Card>
         <CardHeader icon={FileArchive} title="Export center" subtitle="Export the active assessment for stakeholders." />
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <button disabled={!activeRecord} onClick={() => exportRecord("pdf")} className="export-button"><Download className="h-4 w-4" /> Beautiful PDF</button>
+          <button disabled={!activeRecord} onClick={() => exportRecord("pdf")} className="export-button"><Download className="h-4 w-4" /> Executive PDF</button>
+          <button disabled={!activeRecord} onClick={() => exportRecord("markdown")} className="export-button"><FileText className="h-4 w-4" /> Technical Report</button>
+          <button disabled={!activeRecord} onClick={() => exportRecord("markdown")} className="export-button"><BookOpenCheck className="h-4 w-4" /> Compliance Report</button>
+          <button disabled={!activeRecord} onClick={() => exportRecord("markdown")} className="export-button"><ClipboardCheck className="h-4 w-4" /> Procurement Report</button>
           <button disabled={!activeRecord} onClick={() => exportRecord("markdown")} className="export-button"><FileText className="h-4 w-4" /> Markdown</button>
           <button disabled={!activeRecord} onClick={() => exportRecord("json")} className="export-button"><FileJson className="h-4 w-4" /> JSON</button>
-          <button disabled={!activeRecord} onClick={copyShareLink} className="export-button"><LinkIcon className="h-4 w-4" /> Shareable link</button>
+          <button disabled={!activeRecord} onClick={copyShareLink} className="export-button sm:col-span-2"><LinkIcon className="h-4 w-4" /> Share Report</button>
         </div>
       </Card>
     </div>
@@ -1914,23 +2030,235 @@ function CitationPreview({ citation, pdfUrl }: { citation: Citation | null; pdfU
   );
 }
 
-function GeneratedQuestions({ brief }: { brief: RiskBrief }) {
-  const questions = [
-    ...brief.follow_up_questions,
-    ...brief.flagged_gaps.slice(0, 3).map((gap) => `What remediation evidence can you provide for ${gap.category.replaceAll("_", " ")}?`),
+function DocumentChat({
+  brief,
+  selectedCitation,
+  setSelectedCitation,
+}: {
+  brief: RiskBrief;
+  selectedCitation: Citation | null;
+  setSelectedCitation: (citation: Citation) => void;
+}) {
+  const [question, setQuestion] = useState("Where is MFA mentioned?");
+  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string; citations?: Citation[]; provider?: string }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const citations = useMemo(() => allCitations(brief), [brief]);
+  const suggestions = [
+    "What encryption methods are described?",
+    "Does this vendor support SSO or MFA?",
+    "Summarize access control evidence.",
+    "Show findings related to backups.",
+    "Which SOC2 controls are missing evidence?",
   ];
+
+  async function askChat(prompt = question) {
+    if (!prompt.trim()) return;
+    setLoading(true);
+    setError(null);
+    setMessages((current) => [...current, { role: "user", content: prompt }]);
+    try {
+      const response: DocumentChatResponse = await chatWithDocuments({
+        question: prompt,
+        citations,
+        vendor_name: brief.vendor_name,
+      });
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: response.answer,
+          citations: response.citations,
+          provider: response.provider,
+        },
+      ]);
+      if (response.citations[0]) {
+        setSelectedCitation(response.citations[0]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Document chat failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+        <p className="text-sm font-semibold text-slate-950">Ask the assessment evidence</p>
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          Answers are grounded in the citations generated by the assessment. Select a citation to
+          jump back to the evidence viewer.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {suggestions.map((item) => (
+            <button
+              key={item}
+              onClick={() => {
+                setQuestion(item);
+                askChat(item);
+              }}
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-blue-200 hover:text-blue-700"
+              type="button"
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="max-h-80 overflow-auto rounded-[1.5rem] border border-slate-200 bg-white p-4">
+        {messages.length ? (
+          <div className="grid gap-3">
+            {messages.map((message, index) => (
+              <div
+                key={`${message.role}-${index}`}
+                className={`rounded-2xl p-4 ${message.role === "user" ? "ml-8 bg-blue-600 text-white" : "mr-8 bg-slate-50 text-slate-700"}`}
+              >
+                <p className="text-sm leading-6">{message.content}</p>
+                {message.provider ? (
+                  <p className="mt-2 text-xs opacity-70">Provider: {message.provider}</p>
+                ) : null}
+                {message.citations?.length ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {message.citations.map((citation, citationIndex) => (
+                      <button
+                        key={`${citation.source}-${citation.location}-${citationIndex}`}
+                        onClick={() => setSelectedCitation(citation)}
+                        className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700"
+                        type="button"
+                      >
+                        {citation.source} · {citation.location}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={MessageSquare}
+            title="Ask a question about the documents"
+            body="Ask about encryption, SSO, backups, missing controls, or any cited evidence. The answer will include supporting citations."
+          />
+        )}
+      </div>
+      <div className="flex gap-2">
+        <input
+          aria-label="Ask a question about the assessment documents"
+          className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+          onChange={(event) => setQuestion(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              askChat();
+            }
+          }}
+          placeholder="Ask about encryption, SSO, backups, MFA..."
+          value={question}
+        />
+        <button className="btn-primary" disabled={loading} onClick={() => askChat()} type="button">
+          <Send className="h-4 w-4" />
+          {loading ? "Asking" : "Ask"}
+        </button>
+      </div>
+      {selectedCitation ? (
+        <p className="text-xs text-slate-500">
+          Current highlighted evidence: {selectedCitation.source} · {selectedCitation.location}
+        </p>
+      ) : null}
+      {error ? <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
+    </div>
+  );
+}
+
+function CollaborationPanel({
+  items,
+  onAdd,
+  record,
+}: {
+  items: CollaborationItem[];
+  onAdd: (item: Omit<CollaborationItem, "id" | "createdAt">) => void;
+  record: AssessmentRecord;
+}) {
+  const [note, setNote] = useState(`@security Please review ${record.brief.vendor_name}'s open findings.`);
+
+  return (
+    <Card>
+      <CardHeader icon={MessageSquare} title="Collaboration and approvals" subtitle="Comment, mention teammates, resolve findings, and record approval decisions." />
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <button className="btn-secondary justify-center" onClick={() => onAdd({ action: "approved", author: "You", text: "Finding approved for procurement review." })} type="button">
+          <Check className="h-4 w-4" /> Approve finding
+        </button>
+        <button className="btn-secondary justify-center" onClick={() => onAdd({ action: "rejected", author: "You", text: "Finding rejected until vendor provides remediation evidence." })} type="button">
+          <X className="h-4 w-4" /> Reject finding
+        </button>
+        <button className="btn-secondary justify-center" onClick={() => onAdd({ action: "resolved", author: "You", text: "Finding marked resolved after evidence review." })} type="button">
+          <CheckCircle2 className="h-4 w-4" /> Resolve
+        </button>
+      </div>
+      <div className="mt-5 flex flex-col gap-3 md:flex-row">
+        <input
+          aria-label="Add collaboration note"
+          className="min-w-0 flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+          onChange={(event) => setNote(event.target.value)}
+          value={note}
+        />
+        <button
+          className="btn-primary justify-center"
+          onClick={() => {
+            if (note.trim()) {
+              onAdd({ action: "comment", author: "You", text: note });
+              setNote("");
+            }
+          }}
+          type="button"
+        >
+          Add note
+        </button>
+      </div>
+      <div className="mt-5 grid gap-3">
+        {items.length ? items.map((item) => (
+          <div key={item.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold capitalize text-slate-950">{item.action} · {item.author}</p>
+              <span className="text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</span>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{item.text}</p>
+          </div>
+        )) : (
+          <EmptyState
+            icon={MessageSquare}
+            title="No collaboration activity yet"
+            body="Add a note, mention a teammate, resolve a finding, or record an approval decision. Activity appears here as an audit-ready feed."
+          />
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function GeneratedQuestions({ brief }: { brief: RiskBrief }) {
+  const grouped = smartFollowUpGroups(brief);
   return (
     <div className="grid gap-3">
-      {questions.map((question, index) => (
-        <div key={question} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="flex gap-3 text-sm leading-6 text-slate-700">
-          <ClipboardCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
-          {question}
-          </div>
-          <div className="mt-4 grid gap-2 md:grid-cols-3">
-            <MiniMetric label="Reason" value={brief.flagged_gaps[index]?.gap ? "Detected gap" : "Review assurance"} />
-            <MiniMetric label="Evidence" value={brief.flagged_gaps[index]?.citations?.length ? "Cited" : "Needs vendor proof"} />
-            <MiniMetric label="Confidence" value={`${Math.round(brief.confidence_score * 100)}%`} />
+      {grouped.map((group) => (
+        <div key={group.role} className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+          <p className="font-semibold text-slate-950">{group.role}</p>
+          <div className="mt-3 grid gap-3">
+            {group.questions.map((question, index) => (
+              <div key={question} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex gap-3 text-sm leading-6 text-slate-700">
+                  <ClipboardCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                  {question}
+                </div>
+                <div className="mt-4 grid gap-2 md:grid-cols-3">
+                  <MiniMetric label="Priority" value={index === 0 ? "High" : "Medium"} />
+                  <MiniMetric label="Estimated effort" value={group.effort} />
+                  <MiniMetric label="Confidence" value={`${Math.round(brief.confidence_score * 100)}%`} />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       ))}
@@ -2404,6 +2732,163 @@ function assessmentEvents(record: AssessmentRecord) {
     body,
     time: formatAuditTime(record.createdAt, index),
   }));
+}
+
+function allCitations(brief: RiskBrief) {
+  const citations = [
+    ...brief.categories.flatMap((category) => category.citations),
+    ...brief.flagged_gaps.flatMap((gap) => gap.citations || []),
+  ];
+  const seen = new Set<string>();
+  return citations.filter((citation) => {
+    const key = `${citation.source}:${citation.location}:${citation.quote}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function smartFollowUpGroups(brief: RiskBrief) {
+  const primaryGap = brief.flagged_gaps[0]?.category?.replaceAll("_", " ") || "open security evidence";
+  return [
+    {
+      role: "Questions for Vendor",
+      effort: "Vendor response",
+      questions: [
+        brief.follow_up_questions[0] || `Please provide current evidence for ${primaryGap}.`,
+        "Please provide penetration testing reports or the latest third-party security assessment.",
+        "How are encryption keys managed, rotated, and access-controlled?",
+      ],
+    },
+    {
+      role: "Questions for Security",
+      effort: "Internal review",
+      questions: [
+        `Can we accept ${brief.vendor_name}'s current risk level for the intended use case?`,
+        "Which findings require compensating controls before approval?",
+      ],
+    },
+    {
+      role: "Questions for Legal",
+      effort: "Contract review",
+      questions: [
+        "Do breach notification terms match internal requirements?",
+        "Are subprocessors, data-processing roles, and audit rights documented in the agreement?",
+      ],
+    },
+    {
+      role: "Questions for Procurement",
+      effort: "Commercial follow-up",
+      questions: [
+        `Should procurement proceed with ${recommendation(brief).toLowerCase()}?`,
+        "What vendor response is required before purchase approval?",
+      ],
+    },
+    {
+      role: "Questions for Engineering",
+      effort: "Architecture review",
+      questions: [
+        "Does the integration require SSO, SCIM, or network restrictions before rollout?",
+        "How often are backups and disaster recovery procedures tested?",
+      ],
+    },
+  ];
+}
+
+function createDemoRecord(): AssessmentRecord {
+  const now = new Date().toISOString();
+  return {
+    id: crypto.randomUUID(),
+    createdAt: now,
+    brief: {
+      vendor_name: "Demo Vendor",
+      overall_risk_score: 48,
+      overall_risk_level: "medium",
+      confidence_score: 0.76,
+      confidence_breakdown: {
+        score: 0.76,
+        direct_evidence_controls: 3,
+        partial_evidence_controls: 1,
+        no_evidence_controls: 1,
+        total_controls: 5,
+        formula: "76% = 3/5 control categories verified with direct evidence, 1 with partial evidence, 1 with no evidence.",
+        notes: ["Access control and monitoring have direct evidence.", "Disaster recovery needs additional evidence."],
+      },
+      auditor_opinion: "The sample auditor opinion indicates controls were suitably designed, with specific follow-up required for availability evidence.",
+      workflow_trace: ["Demo package loaded", "Evidence matched", "Risk calculated", "Report generated"],
+      plan: {
+        frameworks: ["SOC2", "ISO27001", "GDPR"],
+        categories: ["access_control", "security_monitoring", "availability", "data_protection", "breach_notification"],
+        rationale: "Demo mode loads a representative vendor package for product walkthroughs.",
+      },
+      categories: [
+        {
+          category: "access_control",
+          status: "review",
+          score: 44,
+          confidence: 0.82,
+          rationale: "MFA and administrative access evidence were found, but rollout proof should be confirmed.",
+          gaps: ["Provide current MFA enforcement evidence for all privileged users."],
+          citations: [
+            {
+              source: "demo-soc2.pdf",
+              location: "page 12",
+              quote: "Logical access controls require MFA for privileged administrative accounts.",
+            },
+          ],
+        },
+        {
+          category: "security_monitoring",
+          status: "pass",
+          score: 30,
+          confidence: 0.84,
+          rationale: "Monitoring and alerting evidence is directly supported by the sample SOC2 excerpt.",
+          gaps: [],
+          citations: [
+            {
+              source: "demo-soc2.pdf",
+              location: "page 18",
+              quote: "Security events are logged centrally and reviewed by the security operations team.",
+            },
+          ],
+        },
+        {
+          category: "availability",
+          status: "gap",
+          score: 68,
+          confidence: 0.55,
+          rationale: "Backup policy is described, but disaster recovery test evidence is incomplete.",
+          gaps: ["Disaster recovery testing evidence is incomplete."],
+          citations: [
+            {
+              source: "demo-questionnaire.csv",
+              location: "row 7",
+              quote: "Backups are performed daily; disaster recovery testing documentation is pending.",
+            },
+          ],
+        },
+      ],
+      flagged_gaps: [
+        {
+          category: "availability",
+          gap: "Disaster recovery testing evidence is incomplete.",
+          score: 68,
+          citations: [
+            {
+              source: "demo-questionnaire.csv",
+              location: "row 7",
+              quote: "Backups are performed daily; disaster recovery testing documentation is pending.",
+            },
+          ],
+        },
+      ],
+      follow_up_questions: [
+        "Provide disaster recovery test results and recovery-time objectives.",
+        "Provide MFA enforcement evidence for privileged users.",
+      ],
+      breach_history: [],
+    },
+  };
 }
 
 function formatAuditTime(createdAt: string, offsetSeconds: number) {
