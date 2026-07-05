@@ -837,7 +837,12 @@ function DocumentChat({ brief, selectedCitation, setSelectedCitation }: { brief:
       <div className="min-h-80 rounded-2xl border border-slate-200 bg-white p-4">
         {messages.length ? messages.map((message, index) => (
           <div key={`${message.role}-${index}`} className={`mb-3 rounded-2xl p-4 text-sm leading-6 ${message.role === "user" ? "ml-8 bg-blue-600 text-white" : "mr-8 bg-slate-50 text-slate-700"}`}>
-            {message.content}
+            <div className={message.role === "assistant" ? "whitespace-pre-line" : ""}>{message.content}</div>
+            {message.provider ? (
+              <div className="mt-3 inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500">
+                Answer source: {message.provider}
+              </div>
+            ) : null}
             {message.citations?.length ? (
               <div className="mt-3 flex flex-wrap gap-2">
                 {message.citations.map((citation, citationIndex) => (
