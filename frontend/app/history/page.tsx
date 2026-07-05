@@ -5,6 +5,7 @@ export default function HistoryPage() {
     <ProductExperience
       title="Assessment History"
       subtitle="Review saved assessments, risk movement, confidence history, and shareable reports."
+      view="history"
     />
   );
 }

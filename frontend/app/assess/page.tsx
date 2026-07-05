@@ -5,6 +5,7 @@ export default function AssessPage() {
     <ProductExperience
       title="Assessment Workspace"
       subtitle="Upload vendor evidence, watch live analysis, review gaps, and generate the report."
+      view="assess"
     />
   );
 }

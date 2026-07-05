@@ -5,6 +5,7 @@ export default function AppPage() {
     <ProductExperience
       title="Executive Dashboard"
       subtitle="See vendor risk, recent reports, approval recommendations, and next actions."
+      view="dashboard"
     />
   );
 }

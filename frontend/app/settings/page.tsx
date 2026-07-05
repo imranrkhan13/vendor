@@ -5,6 +5,7 @@ export default function SettingsPage() {
     <ProductExperience
       title="Settings"
       subtitle="Configure provider URLs, report preferences, team workflow, and deployment defaults."
+      view="settings"
     />
   );
 }
