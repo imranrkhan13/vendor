@@ -70,15 +70,23 @@ export type DocumentChatResponse = {
 };
 
 function getApiBase() {
-  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
-    return process.env.NEXT_PUBLIC_API_BASE_URL;
-  }
-
   if (typeof window !== "undefined") {
     const { hostname, protocol } = window.location;
+    const configured = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const configuredIsLocalhost =
+      configured?.includes("localhost") || configured?.includes("127.0.0.1");
+
+    if (configured && (hostname === "localhost" || hostname === "127.0.0.1" || !configuredIsLocalhost)) {
+      return configured;
+    }
+
     if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1") {
       return `${protocol}//${hostname}:8000`;
     }
+  }
+
+  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_API_BASE_URL;
   }
 
   return "http://localhost:8000";
