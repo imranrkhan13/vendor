@@ -32,8 +32,15 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+
+img,
+svg {
+  max-width: 100%;
 }
 
 a:focus-visible,
