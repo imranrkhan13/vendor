@@ -66,8 +66,15 @@ type CollaborationItem = {
 const storageKey = "vendor-risk-assessment-history";
 const sharedReportPrefix = "vendor-risk-shared-report:";
 
+function safeId(prefix = "id") {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 const createDraft = (): VendorDraft => ({
-  id: crypto.randomUUID(),
+  id: safeId("draft"),
   name: "",
 });
 
@@ -161,7 +168,7 @@ export default function LandingPage() {
         const brief = await streamAssessmentTrace(formData, (item) => {
           setTrace((current) => [...current, { ...item, message: `${draft.name}: ${item.message}` }]);
         });
-        next.push({ id: crypto.randomUUID(), createdAt: new Date().toISOString(), brief });
+        next.push({ id: safeId("assessment"), createdAt: new Date().toISOString(), brief });
       }
 
       setRecords((current) => [...next, ...current]);
@@ -196,12 +203,14 @@ export default function LandingPage() {
 
   function shareReport() {
     if (!activeRecord) return;
-    const token = crypto.randomUUID();
+    const token = safeId("share");
     window.localStorage.setItem(`${sharedReportPrefix}${token}`, JSON.stringify(activeRecord));
     const url = new URL(window.location.href);
     url.pathname = `/report/${token}`;
     url.hash = "";
-    navigator.clipboard?.writeText(url.toString());
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url.toString()).catch(() => undefined);
+    }
     setShareStatus("Share link copied. The report opens as a printable consulting-style page.");
     window.setTimeout(() => setShareStatus(null), 4000);
   }
@@ -225,7 +234,7 @@ export default function LandingPage() {
   function addCollaborationItem(recordId: string, item: Omit<CollaborationItem, "id" | "createdAt">) {
     setCollaboration((current) => ({
       ...current,
-      [recordId]: [{ ...item, id: crypto.randomUUID(), createdAt: new Date().toISOString() }, ...(current[recordId] || [])],
+      [recordId]: [{ ...item, id: safeId("activity"), createdAt: new Date().toISOString() }, ...(current[recordId] || [])],
     }));
   }
 
@@ -1450,7 +1459,7 @@ function highlightSearch(text: string, query: string) {
 
 function createDemoRecord(): AssessmentRecord {
   return {
-    id: crypto.randomUUID(),
+    id: safeId("demo"),
     createdAt: new Date().toISOString(),
     brief: {
       vendor_name: "Demo Vendor",
