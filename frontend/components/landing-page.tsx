@@ -65,21 +65,22 @@ export default function LandingPage() {
         <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1fr_0.85fr]">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-700">
-              Vendor Risk Assessment Agent
+              AI security review for companies that buy software
             </p>
             <h1 className="mt-7 max-w-5xl text-6xl font-semibold leading-[0.92] tracking-[-0.075em] md:text-8xl">
-              Approve vendors with confidence.
+              Before you trust a company with your data, verify them.
             </h1>
             <p className="mt-7 max-w-2xl text-xl leading-8 text-slate-600">
-              Upload vendor security documents, watch the agent verify evidence, and get a cited
-              risk report your security, procurement, and legal teams can trust.
+              A vendor is simply another company you want to work with — like Slack, Notion, Zoom,
+              Stripe, OpenAI, or AWS. Before a business shares customer data with them, someone has
+              to check whether they are actually secure.
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <a className="btn-primary" href="/app">
-                Start Assessment <ArrowRight className="h-4 w-4" />
+                Try a Security Review <ArrowRight className="h-4 w-4" />
               </a>
               <a className="btn-secondary" href="/app?demo=1">
-                Watch Demo
+                Watch the AI Investigate
               </a>
               <a className="btn-secondary" href="https://github.com/imranrkhan13/vendor">
                 GitHub
@@ -91,10 +92,105 @@ export default function LandingPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-24">
-        <div className="grid gap-5 md:grid-cols-3">
-          <StoryCard title="Vendor sends documents" body="SOC2 reports, questionnaires, and breach context arrive in different formats." />
-          <StoryCard title="The agent verifies evidence" body="It extracts controls, cross-checks claims, and flags contradictions with citations." />
-          <StoryCard title="Teams get a decision" body="Security sees findings, procurement sees next steps, and leadership sees business risk." />
+        <SectionHeading
+          eyebrow="The problem"
+          title="Every vendor says, “we’re secure.” The hard part is proving it."
+          body="When a company wants to buy software, the vendor sends a pile of security documents. Someone has to read them, compare them, and decide whether the vendor can be trusted."
+        />
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <StoryCard title="The deal starts" body="A team wants to buy useful software. Procurement wants to move quickly. The vendor says their product is safe." />
+          <StoryCard title="The paperwork arrives" body="Security reports, questionnaires, certificates, policies, and incident history show up as PDFs and spreadsheets." />
+          <StoryCard title="Everyone waits" body="Security reads. Legal waits. Engineering waits. The business slows down while people search for truth in documents." />
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-24">
+        <SectionHeading
+          eyebrow="What gets reviewed?"
+          title="The agent reads the same documents a security analyst would read."
+          body="The difference is that it does the boring comparison work in minutes and keeps every answer tied to the original source."
+        />
+        <div className="mt-10 grid gap-5 lg:grid-cols-4">
+          <ExplainerCard
+            term="SOC2 report"
+            plain="An independent security audit. It shows whether a company follows good security practices."
+          />
+          <ExplainerCard
+            term="Questionnaire"
+            plain="A form where the vendor answers questions like: Do you use MFA? Do you encrypt data?"
+          />
+          <ExplainerCard
+            term="Breach history"
+            plain="A check for past incidents, security failures, or public signs that something went wrong."
+          />
+          <ExplainerCard
+            term="Policies"
+            plain="Documents that explain how the company handles access, backups, incidents, and data."
+          />
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-24">
+        <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-sm md:p-10">
+          <SectionHeading
+            eyebrow="What the AI actually does"
+            title="It investigates. It does not just summarize."
+            body="A normal chatbot can summarize a PDF. This agent compares what the vendor claims with what the official audit actually proves."
+          />
+          <div className="mt-10 grid gap-4 md:grid-cols-5">
+            {[
+              ["1", "Upload", "Add the SOC2 report, questionnaire, and optional breach history."],
+              ["2", "Extract", "Pull out controls, audit results, and important security claims."],
+              ["3", "Compare", "Check whether the questionnaire matches the audited evidence."],
+              ["4", "Score", "Calculate risk with deterministic rules, not AI vibes."],
+              ["5", "Report", "Generate a cited brief with gaps and follow-up questions."],
+            ].map(([step, title, body]) => (
+              <div key={step} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">{step}</span>
+                <h3 className="mt-6 font-semibold text-slate-950">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-24">
+        <SectionHeading
+          eyebrow="Security standards, in plain English"
+          title="These names sound complicated. They are just trust checklists."
+          body="Different industries use different standards. The agent maps evidence to these standards so reviewers can see what is covered and what is missing."
+        />
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <ExplainerCard term="SOC2" plain="A common audit for software companies. It checks security, availability, confidentiality, and related practices." />
+          <ExplainerCard term="ISO27001" plain="An international standard for how a company manages information security." />
+          <ExplainerCard term="GDPR" plain="A European privacy law about how personal data is collected, stored, and protected." />
+          <ExplainerCard term="NIST" plain="A security guidance framework used to organize controls and reduce cybersecurity risk." />
+          <ExplainerCard term="HIPAA" plain="A U.S. healthcare privacy and security law for protecting medical information." />
+          <ExplainerCard term="PCI DSS" plain="A security standard for companies that handle payment card data." />
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 py-24">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="rounded-[2.25rem] border border-slate-200 bg-white p-8 shadow-sm">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Traditional AI summary</p>
+            <h2 className="mt-5 text-4xl font-semibold tracking-[-0.05em] text-slate-950">Looks useful, but can be hard to trust.</h2>
+            <div className="mt-8 grid gap-3">
+              {["May miss contradictions", "May invent confidence", "May not show exact evidence", "Hard to audit later"].map((item) => (
+                <div key={item} className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">{item}</div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-[2.25rem] bg-gradient-to-br from-blue-600 to-indigo-600 p-8 text-white shadow-xl shadow-blue-200">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-100">This platform</p>
+            <h2 className="mt-5 text-4xl font-semibold tracking-[-0.05em]">Every decision has evidence.</h2>
+            <div className="mt-8 grid gap-3">
+              {["Scores are calculated, not guessed", "Each finding links to a source", "Contradictions are flagged", "Follow-up questions are generated"].map((item) => (
+                <div key={item} className="rounded-2xl bg-white/15 p-4 text-sm text-white ring-1 ring-white/20">{item}</div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -104,11 +200,11 @@ export default function LandingPage() {
             Know the risk before you sign.
           </h2>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-            The product is simple: run an assessment, review the report, ask questions, share the
-            decision.
+            Instead of hoping a vendor is safe, get a decision-ready brief with citations,
+            confidence, gaps, and the questions you should ask next.
           </p>
           <a className="mt-8 inline-flex rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950" href="/app">
-            Open the app
+            Upload Documents
           </a>
         </div>
       </section>
@@ -124,16 +220,20 @@ function LandingPreview() {
       className="rounded-[2.25rem] border border-slate-200 bg-white/80 p-5 shadow-2xl shadow-blue-100/70 backdrop-blur"
     >
       <div className="rounded-[1.75rem] bg-gradient-to-br from-blue-600 to-indigo-600 p-5 text-white">
-        <p className="text-sm uppercase tracking-[0.18em] text-blue-100">Decision summary</p>
-        <h3 className="mt-8 text-4xl font-semibold tracking-[-0.06em]">Approve after follow-up</h3>
+        <p className="text-sm uppercase tracking-[0.18em] text-blue-100">Example output</p>
+        <h3 className="mt-8 text-4xl font-semibold tracking-[-0.06em]">Safe to continue, but ask 3 questions first.</h3>
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
           <PreviewMetric label="Risk" value="Medium" />
-          <PreviewMetric label="Confidence" value="High" />
-          <PreviewMetric label="Evidence" value="Cited" />
+          <PreviewMetric label="Proof" value="Cited" />
+          <PreviewMetric label="Next step" value="Follow up" />
         </div>
       </div>
       <div className="mt-4 grid gap-3">
-        {["SOC2 evidence matched", "Questionnaire contradiction found", "Follow-up question generated"].map((item) => (
+        {[
+          "The audit supports the vendor's access control claim",
+          "One questionnaire answer does not match the audit",
+          "The report explains exactly what to ask next",
+        ].map((item) => (
           <div key={item} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             {item}
@@ -144,11 +244,33 @@ function LandingPreview() {
   );
 }
 
+function SectionHeading({ body, eyebrow, title }: { body: string; eyebrow: string; title: string }) {
+  return (
+    <div className="max-w-4xl">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">{eyebrow}</p>
+      <h2 className="mt-4 text-4xl font-semibold tracking-[-0.055em] text-slate-950 md:text-6xl">{title}</h2>
+      <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">{body}</p>
+    </div>
+  );
+}
+
 function PreviewMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-white/15 p-4">
       <p className="text-xs uppercase tracking-[0.14em] text-blue-100">{label}</p>
       <p className="mt-2 font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function ExplainerCard({ plain, term }: { plain: string; term: string }) {
+  return (
+    <div className="group rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100/60">
+      <div className="flex items-center justify-between gap-4">
+        <h3 className="text-2xl font-semibold tracking-[-0.04em] text-slate-950">{term}</h3>
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">plain English</span>
+      </div>
+      <p className="mt-5 text-sm leading-6 text-slate-600">{plain}</p>
     </div>
   );
 }
