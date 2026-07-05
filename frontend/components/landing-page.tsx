@@ -251,31 +251,185 @@ export default function LandingPage() {
       <TrustSection />
       <CollaborationStorySection />
       <ChatStorySection />
-      <ProductCockpit
-        activeRecord={activeRecord}
-        addCollaborationItem={addCollaborationItem}
-        collaboration={collaboration}
-        commandOpen={commandOpen}
-        drafts={drafts}
-        error={error}
-        exportRecord={exportRecord}
-        loading={loading}
-        loadDemoMode={loadDemoMode}
-        pdfUrl={pdfUrl}
-        progress={progress}
-        records={records}
-        selectedCitation={selectedCitation}
-        setActiveId={setActiveId}
-        setCommandOpen={setCommandOpen}
-        setDrafts={setDrafts}
-        setSelectedCitation={setSelectedCitation}
-        shareReport={shareReport}
-        shareStatus={shareStatus}
-        submitAssessment={submitAssessment}
-        trace={trace}
-        updateDraft={updateDraft}
-      />
       <ClosingSection />
+    </main>
+  );
+}
+
+export function ProductExperience({ title = "Vendor Risk Command Center", subtitle = "Run assessments, inspect evidence, chat with documents, share reports, and review history." }: { title?: string; subtitle?: string }) {
+  const [drafts, setDrafts] = useState<VendorDraft[]>([createDraft()]);
+  const [records, setRecords] = useState<AssessmentRecord[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [trace, setTrace] = useState<TraceEvent[]>([]);
+  const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [collaboration, setCollaboration] = useState<Record<string, CollaborationItem[]>>({});
+  const [commandOpen, setCommandOpen] = useState(false);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(storageKey);
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved) as AssessmentRecord[];
+      setRecords(parsed);
+      setActiveId(parsed[0]?.id ?? null);
+      setSelectedCitation(parsed[0]?.brief.categories.flatMap((item) => item.citations)[0] ?? null);
+    } catch {
+      window.localStorage.removeItem(storageKey);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(storageKey, JSON.stringify(records));
+  }, [records]);
+
+  useEffect(() => {
+    function onKey(event: globalThis.KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setCommandOpen((value) => !value);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const activeRecord = useMemo(
+    () => records.find((record) => record.id === activeId) ?? records[0] ?? null,
+    [activeId, records],
+  );
+
+  async function submitAssessment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setTrace([]);
+    setLoading(true);
+    setProgress(8);
+
+    const validDrafts = drafts.filter((draft) => draft.name && draft.soc2 && draft.questionnaire);
+    if (!validDrafts.length) {
+      setError("Upload a SOC2 report and questionnaire to begin the assessment.");
+      setLoading(false);
+      setProgress(0);
+      return;
+    }
+
+    try {
+      const next: AssessmentRecord[] = [];
+      for (const [index, draft] of validDrafts.entries()) {
+        const formData = new FormData();
+        formData.append("vendor_name", draft.name);
+        formData.append("soc2_report", draft.soc2 as File);
+        formData.append("questionnaire", draft.questionnaire as File);
+        if (draft.breach) formData.append("breach_history", draft.breach);
+        setPdfUrl(URL.createObjectURL(draft.soc2 as File));
+        setProgress(Math.round((index / validDrafts.length) * 65) + 12);
+
+        const brief = await streamAssessmentTrace(formData, (item) => {
+          setTrace((current) => [...current, { ...item, message: `${draft.name}: ${item.message}` }]);
+        });
+        next.push({ id: safeId("assessment"), createdAt: new Date().toISOString(), brief });
+      }
+
+      setRecords((current) => [...next, ...current]);
+      setActiveId(next[0]?.id ?? null);
+      setSelectedCitation(next[0]?.brief.categories.flatMap((item) => item.citations)[0] ?? null);
+      setProgress(100);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Assessment failed.");
+    } finally {
+      setLoading(false);
+      window.setTimeout(() => setProgress(0), 1000);
+    }
+  }
+
+  function updateDraft(id: string, patch: Partial<VendorDraft>) {
+    setDrafts((current) => current.map((draft) => (draft.id === id ? { ...draft, ...patch } : draft)));
+  }
+
+  function loadDemoMode() {
+    const demo = createDemoRecord();
+    setRecords((current) => [demo, ...current]);
+    setActiveId(demo.id);
+    setSelectedCitation(demo.brief.categories[0]?.citations[0] ?? null);
+    setTrace([
+      { step: "demo", message: "Loaded sample vendor documents." },
+      { step: "plan", message: "Mapped SOC2, ISO27001, and GDPR control families." },
+      { step: "retrieve", message: "Linked evidence to controls and questionnaire claims." },
+      { step: "reason", message: "Calculated deterministic risk and assessment confidence." },
+      { step: "complete", message: "Board-ready report generated." },
+    ]);
+  }
+
+  function shareReport() {
+    if (!activeRecord) return;
+    const token = safeId("share");
+    window.localStorage.setItem(`${sharedReportPrefix}${token}`, JSON.stringify(activeRecord));
+    const url = new URL(window.location.href);
+    url.pathname = `/report/${token}`;
+    url.hash = "";
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url.toString()).catch(() => undefined);
+    }
+    setShareStatus("Share link copied. The report opens as a printable consulting-style page.");
+    window.setTimeout(() => setShareStatus(null), 4000);
+  }
+
+  function exportRecord(format: "pdf" | "markdown" | "json") {
+    if (!activeRecord) return;
+    if (format === "pdf") {
+      window.print();
+      return;
+    }
+    const content = format === "json" ? JSON.stringify(activeRecord.brief, null, 2) : toMarkdown(activeRecord.brief);
+    const blob = new Blob([content], { type: format === "json" ? "application/json" : "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${activeRecord.brief.vendor_name.toLowerCase().replace(/\s+/g, "-")}-risk-report.${format === "json" ? "json" : "md"}`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function addCollaborationItem(recordId: string, item: Omit<CollaborationItem, "id" | "createdAt">) {
+    setCollaboration((current) => ({
+      ...current,
+      [recordId]: [{ ...item, id: safeId("activity"), createdAt: new Date().toISOString() }, ...(current[recordId] || [])],
+    }));
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f8fafc] text-slate-950">
+      <AppShell title={title} subtitle={subtitle}>
+        <ProductCockpit
+          activeRecord={activeRecord}
+          addCollaborationItem={addCollaborationItem}
+          collaboration={collaboration}
+          commandOpen={commandOpen}
+          drafts={drafts}
+          error={error}
+          exportRecord={exportRecord}
+          loading={loading}
+          loadDemoMode={loadDemoMode}
+          pdfUrl={pdfUrl}
+          progress={progress}
+          records={records}
+          selectedCitation={selectedCitation}
+          setActiveId={setActiveId}
+          setCommandOpen={setCommandOpen}
+          setDrafts={setDrafts}
+          setSelectedCitation={setSelectedCitation}
+          shareReport={shareReport}
+          shareStatus={shareStatus}
+          submitAssessment={submitAssessment}
+          trace={trace}
+          updateDraft={updateDraft}
+        />
+      </AppShell>
     </main>
   );
 }
@@ -328,13 +482,13 @@ function CinematicHero() {
           Every vendor claims they're secure. Evidence tells the truth.
         </motion.p>
         <motion.a
-          href="#product"
+          href="/app"
           initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.34 }}
           className="btn-primary mt-10"
         >
-          Run your first assessment <ArrowRight className="h-4 w-4" />
+          Start Assessment <ArrowRight className="h-4 w-4" />
         </motion.a>
       </div>
     </section>
@@ -876,7 +1030,7 @@ function ClosingSection() {
           <span className="block text-blue-200">It's verified.</span>
         </h2>
         <p className="mt-8 max-w-xl text-xl leading-8 text-slate-300">Know the risk before you sign.</p>
-        <a href="#product" className="mt-10 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950">
+        <a href="/app" className="mt-10 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950">
           Run your first assessment <ArrowRight className="h-4 w-4" />
         </a>
       </div>
@@ -932,6 +1086,61 @@ function ProductCockpit(props: {
       </div>
       <ComparisonAndHistory records={props.records} setActiveId={props.setActiveId} />
     </section>
+  );
+}
+
+function AppShell({ children, subtitle, title }: { children: ReactNode; subtitle: string; title: string }) {
+  const nav = [
+    ["/app", "Dashboard", Activity],
+    ["/assess", "Assess", UploadCloud],
+    ["/chat", "AI Chat", MessageSquare],
+    ["/frameworks", "Frameworks", Layers3],
+    ["/history", "History", History],
+    ["/settings", "Settings", Command],
+  ] as const;
+
+  return (
+    <div className="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
+      <aside className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 p-4 backdrop-blur-xl lg:h-screen lg:border-b-0 lg:border-r">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-200">
+            <ShieldCheck className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-slate-950">Vendor Risk</p>
+            <p className="text-xs text-slate-500">Enterprise AI review</p>
+          </div>
+        </div>
+        <nav className="mt-6 grid grid-cols-2 gap-2 lg:grid-cols-1">
+          {nav.map(([href, label, Icon]) => (
+            <a key={href} href={href} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-700">
+              <Icon className="h-4 w-4" />
+              {label}
+            </a>
+          ))}
+        </nav>
+      </aside>
+      <div>
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 px-5 py-4 backdrop-blur-xl lg:px-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-[-0.04em] text-slate-950">{title}</h1>
+              <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 md:flex">
+                <Search className="h-4 w-4" />
+                Search reports
+              </div>
+              <button className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700" type="button">
+                Notifications
+              </button>
+            </div>
+          </div>
+        </header>
+        {children}
+      </div>
+    </div>
   );
 }
 

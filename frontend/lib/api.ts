@@ -69,8 +69,23 @@ export type DocumentChatResponse = {
   citations: Citation[];
 };
 
+function getApiBase() {
+  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_API_BASE_URL;
+  }
+
+  if (typeof window !== "undefined") {
+    const { hostname, protocol } = window.location;
+    if (hostname && hostname !== "localhost" && hostname !== "127.0.0.1") {
+      return `${protocol}//${hostname}:8000`;
+    }
+  }
+
+  return "http://localhost:8000";
+}
+
 export async function submitAssessment(formData: FormData): Promise<RiskBrief> {
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const apiBase = getApiBase();
   const response = await fetch(`${apiBase}/assess`, {
     method: "POST",
     body: formData
@@ -88,7 +103,7 @@ export async function streamAssessmentTrace(
   formData: FormData,
   onEvent: (event: TraceEvent) => void
 ): Promise<RiskBrief> {
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const apiBase = getApiBase();
   const response = await fetch(`${apiBase}/trace`, {
     method: "POST",
     body: formData
@@ -143,7 +158,7 @@ export async function chatWithDocuments(input: {
   citations: Citation[];
   vendor_name?: string;
 }): Promise<DocumentChatResponse> {
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const apiBase = getApiBase();
   const response = await fetch(`${apiBase}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
