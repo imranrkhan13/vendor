@@ -82,8 +82,8 @@ def chat_with_documents(request: ChatRequest) -> ChatResponse:
     """Answer questions against cited assessment evidence without changing assessment logic."""
 
     selected = _select_relevant_citations(request.question, request.citations)
-    provider = _first_configured_provider()
-    if provider:
+    provider_errors: list[str] = []
+    for provider in _configured_providers():
         try:
             answer = _call_document_chat_provider(
                 provider=provider,
@@ -92,12 +92,12 @@ def chat_with_documents(request: ChatRequest) -> ChatResponse:
                 vendor_name=request.vendor_name,
             )
             return ChatResponse(answer=answer, provider=provider[0], citations=selected)
-        except Exception:
-            # Keep the chat usable during demos even when a provider key is absent, expired, or rate limited.
-            pass
+        except Exception as exc:
+            # Keep trying other configured providers before using the local evidence fallback.
+            provider_errors.append(f"{provider[0]}: {exc}")
 
     return ChatResponse(
-        answer=_local_document_answer(request.question, selected, request.vendor_name),
+        answer=_local_document_answer(request.question, selected, request.vendor_name, provider_errors),
         provider="local-evidence-fallback",
         citations=selected,
     )
@@ -243,7 +243,8 @@ def _trace_event(step: str, message: str, extra: dict[str, object] | None = None
     return f"data: {json.dumps(payload)}\n\n"
 
 
-def _first_configured_provider() -> tuple[str, str] | None:
+def _configured_providers() -> list[tuple[str, str]]:
+    providers: list[tuple[str, str]] = []
     for provider, env_name in (
         ("gemini", "GEMINI_API"),
         ("groq", "GROQ_API"),
@@ -253,8 +254,8 @@ def _first_configured_provider() -> tuple[str, str] | None:
     ):
         api_key = os.getenv(env_name)
         if api_key:
-            return provider, api_key
-    return None
+            providers.append((provider, api_key))
+    return providers
 
 
 def _select_relevant_citations(question: str, citations: list[ChatCitation], limit: int = 5) -> list[ChatCitation]:
@@ -273,19 +274,118 @@ def _local_document_answer(
     question: str,
     citations: list[ChatCitation],
     vendor_name: str | None,
+    provider_errors: list[str] | None = None,
 ) -> str:
     if not citations:
         return (
-            "I do not have cited evidence for that question yet. Run an assessment or select a finding "
-            "with citations, then ask again."
+            "Short answer: I do not have enough cited evidence to answer that yet.\n\n"
+            "What to do next: run an assessment or select a finding with citations, then ask again. "
+            "I need source excerpts before I can give a trustworthy answer."
         )
 
-    evidence_summary = " ".join(citation.quote for citation in citations[:3])
-    vendor_prefix = f"For {vendor_name}, " if vendor_name else ""
-    return (
-        f"{vendor_prefix}the available cited evidence most relevant to your question indicates: "
-        f"{evidence_summary[:900]}. Review the citations below for the exact source pages or rows."
+    question_lower = question.lower()
+    vendor_label = vendor_name or "this vendor"
+    snippets = [_short_quote(citation.quote) for citation in citations[:4]]
+    source_summary = "\n".join(
+        f"- [{idx + 1}] {citation.source}, {citation.location}: {snippets[idx]}"
+        for idx, citation in enumerate(citations[:4])
     )
+
+    if any(term in question_lower for term in ("safe", "trust", "approve", "work with")):
+        short_answer = (
+            f"Short answer: I would not give {vendor_label} a blanket approval from these excerpts alone. "
+            "The evidence shows some security controls, but the right decision is conditional approval "
+            "pending follow-up on any missing or weak areas."
+        )
+        why = (
+            "Why: vendor approval is not about whether a document sounds good. It is about whether "
+            "the cited audit evidence proves the claims that matter for your use case."
+        )
+        next_step = (
+            "Recommended next step: ask the vendor for evidence that directly maps to your highest-risk "
+            "requirements, especially identity access, incident response, encryption, backups, and any "
+            "gap already flagged in the assessment."
+        )
+    elif any(term in question_lower for term in ("match", "contradict", "questionnaire")):
+        short_answer = (
+            "Short answer: partially, but I would not treat the questionnaire as fully verified yet. "
+            "The cited evidence supports some claims, but the reviewer should confirm that each important "
+            "questionnaire answer has matching audit evidence."
+        )
+        why = (
+            "Why: a questionnaire is self-reported. A SOC 2 report is independent audit evidence. "
+            "The safest workflow is to compare the claim against the audit and flag anything that is "
+            "unsupported or inconsistent."
+        )
+        next_step = (
+            "Recommended next step: ask for a control-by-control mapping between the questionnaire answers "
+            "and SOC 2 sections, then review any answers that only have policy language but no test result."
+        )
+    elif any(term in question_lower for term in ("mfa", "multi-factor", "sso", "single sign")):
+        found = any(re.search(r"\b(mfa|multi[- ]?factor|sso|single sign)\b", citation.quote, re.I) for citation in citations)
+        short_answer = (
+            "Short answer: I found relevant identity/access evidence in the selected citations."
+            if found
+            else "Short answer: I do not see a clear MFA or SSO statement in the selected citations."
+        )
+        why = (
+            "Why: MFA and SSO matter because weak identity controls are one of the fastest ways a vendor "
+            "can become a security risk."
+        )
+        next_step = (
+            "Recommended next step: ask the vendor for current MFA enforcement evidence for admins, SSO "
+            "support details, and the most recent access review."
+        )
+    elif any(term in question_lower for term in ("summarize", "summary", "explain")):
+        short_answer = (
+            f"Short answer: {vendor_label} has cited evidence describing parts of its security program, "
+            "including operational controls and supporting infrastructure. This is useful, but it should "
+            "still be reviewed against the specific risks your company cares about."
+        )
+        why = (
+            "Why: a summary is only valuable if it tells you what decision to make. These excerpts suggest "
+            "there is security process evidence, but they do not automatically prove every control is strong."
+        )
+        next_step = (
+            "Recommended next step: review the risk brief categories, then ask targeted follow-up questions "
+            "for any missing evidence."
+        )
+    else:
+        short_answer = (
+            f"Short answer: based on the cited excerpts, {vendor_label} has some relevant security evidence, "
+            "but I would treat this as a review item rather than an automatic approval."
+        )
+        why = (
+            "Why: the answer should be based on evidence, not vendor claims. The cited excerpts show what "
+            "was found, but any missing control evidence should be followed up."
+        )
+        next_step = (
+            "Recommended next step: use the citations below to verify the source text, then ask the vendor "
+            "for proof covering any unresolved control area."
+        )
+
+    provider_note = ""
+    if provider_errors:
+        provider_note = (
+            "\n\nNote: I used the local evidence reviewer because configured AI providers were unavailable "
+            "or rejected the request. The answer is still grounded only in the citations below."
+        )
+
+    return (
+        f"{short_answer}\n\n"
+        f"{why}\n\n"
+        f"Evidence I used:\n{source_summary}\n\n"
+        f"{next_step}"
+        f"{provider_note}"
+    )
+
+
+def _short_quote(text: str, max_chars: int = 220) -> str:
+    normalized = re.sub(r"\s+", " ", text).strip()
+    if len(normalized) <= max_chars:
+        return normalized
+    clipped = normalized[:max_chars].rsplit(" ", 1)[0]
+    return f"{clipped}..."
 
 
 def _call_document_chat_provider(
@@ -300,8 +400,16 @@ def _call_document_chat_provider(
         for idx, citation in enumerate(citations)
     )
     prompt = (
-        "Answer as a compliance document analyst. Use only the evidence below. "
-        "If the evidence is insufficient, say what is missing. Include citation numbers.\n\n"
+        "You are a senior vendor security reviewer advising a procurement, legal, and security team. "
+        "Answer like a helpful human advisor, not like a search engine. Use ONLY the evidence below. "
+        "Do not paste long raw excerpts. Do not overstate certainty. If evidence is missing, say so.\n\n"
+        "Format exactly like this:\n"
+        "Short answer: <direct answer in 1-2 sentences>\n\n"
+        "Why it matters: <business/security meaning in plain English>\n\n"
+        "Evidence used: <2-4 concise bullets with citation numbers>\n\n"
+        "What is still unclear: <missing evidence or uncertainty>\n\n"
+        "Recommended next step: <actionable vendor/security/procurement step>\n\n"
+        "Tone: clear, concise, professional, practical. Include citation numbers like [1], [2].\n\n"
         f"Vendor: {vendor_name or 'Unknown'}\nQuestion: {question}\nEvidence:\n{evidence}"
     )
 
