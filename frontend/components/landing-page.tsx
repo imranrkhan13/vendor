@@ -72,7 +72,7 @@ const createDraft = (): VendorDraft => ({
 });
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 36 },
+  hidden: { opacity: 1, y: 0 },
   visible: { opacity: 1, y: 0 },
 };
 
@@ -296,11 +296,11 @@ function CinematicHero() {
       <ParticleField />
       <FloatingDocuments />
       <div className="relative z-10 mx-auto max-w-7xl">
-        <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-700">
+        <motion.p initial={false} animate={{ opacity: 1, y: 0 }} className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-700">
           Vendor Risk Assessment Platform
         </motion.p>
         <motion.h1
-          initial={{ opacity: 0, y: 36 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.12 }}
           className="mt-8 max-w-6xl text-6xl font-semibold leading-[0.9] tracking-[-0.08em] text-slate-950 md:text-8xl lg:text-[8.5rem]"
@@ -311,7 +311,7 @@ function CinematicHero() {
           </span>
         </motion.h1>
         <motion.p
-          initial={{ opacity: 0, y: 18 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.24 }}
           className="mt-8 max-w-2xl text-2xl leading-9 tracking-[-0.03em] text-slate-600"
@@ -320,7 +320,7 @@ function CinematicHero() {
         </motion.p>
         <motion.a
           href="#product"
-          initial={{ opacity: 0, y: 16 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.34 }}
           className="btn-primary mt-10"
@@ -392,7 +392,7 @@ function ChaosSection() {
             <motion.div
               key={label}
               className={`absolute w-56 rounded-[1.75rem] border border-slate-200 bg-white/90 p-5 shadow-xl shadow-slate-200/80 backdrop-blur ${positions[index]}`}
-              initial={{ opacity: 0, scale: 0.92 }}
+              initial={false}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true, margin: "-80px" }}
               animate={{ y: [0, -12, 0] }}
@@ -435,7 +435,7 @@ function PipelineSection() {
             <motion.div
               key={stage}
               className="rounded-[1.5rem] border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur"
-              initial={{ opacity: 0, y: 18 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.06 }}
@@ -459,7 +459,7 @@ function ReasoningSection() {
           <motion.div
             key={step}
             className="mb-3 flex items-center gap-4 rounded-[1.5rem] border border-white/10 bg-white/[0.06] p-4 last:mb-0"
-            initial={{ opacity: 0, x: -18 }}
+            initial={false}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ delay: index * 0.09 }}
@@ -510,7 +510,7 @@ function EvidenceGraphSection() {
               stroke="url(#graphLine)"
               strokeWidth="2.4"
               strokeDasharray="10 12"
-              initial={{ pathLength: 0, opacity: 0.2 }}
+              initial={{ pathLength: 1, opacity: 0.95 }}
               whileInView={{ pathLength: 1, opacity: 0.95 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.07, duration: 1.1 }}
@@ -536,7 +536,7 @@ function EvidenceGraphSection() {
                 : "border-white/80 bg-white/85 text-slate-950 shadow-slate-200/80"
             }`}
             style={{ left: `${node.x}%`, top: `${node.y}%` }}
-            initial={{ opacity: 0, scale: 0.85 }}
+            initial={false}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ delay: index * 0.07 }}
@@ -572,7 +572,7 @@ function InteractiveReportSection() {
               </button>
             ))}
           </div>
-          <motion.div key={open} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="min-h-80 rounded-[2rem] bg-gradient-to-br from-slate-50 to-white p-6">
+          <motion.div key={open} initial={false} animate={{ opacity: 1, y: 0 }} className="min-h-80 rounded-[2rem] bg-gradient-to-br from-slate-50 to-white p-6">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">{open}</p>
             <h3 className="mt-4 text-4xl font-semibold tracking-[-0.06em] text-slate-950">Board-ready, cited, and printable.</h3>
             <div className="mt-8 grid gap-3">
@@ -609,7 +609,7 @@ function TransformationColumn({ items, muted = false, title }: { items: string[]
           <motion.div
             key={item}
             className={`rounded-2xl p-4 text-sm font-semibold ${muted ? "bg-slate-50 text-slate-600" : "bg-white/15 text-white ring-1 ring-white/20"}`}
-            initial={{ opacity: 0, x: muted ? -18 : 18 }}
+            initial={false}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ delay: index * 0.06 }}
@@ -674,7 +674,7 @@ function AnimatedMetricsSection() {
             <motion.div
               key={step}
               className="relative rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center shadow-sm"
-              initial={{ opacity: 0, y: 16 }}
+              initial={false}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.08 }}
@@ -708,7 +708,7 @@ function MetricPanel({
   return (
     <motion.div
       className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60"
-      initial={{ opacity: 0, y: 24 }}
+      initial={false}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay }}
@@ -737,7 +737,7 @@ function MetricPanel({
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
-              initial={{ pathLength: 0 }}
+              initial={{ pathLength: 1 }}
               whileInView={{ pathLength: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 1.4, delay }}
@@ -752,7 +752,7 @@ function MetricPanel({
                   <motion.div
                     className="w-full rounded-full"
                     style={{ backgroundColor: stroke }}
-                    initial={{ height: 0 }}
+                    initial={{ height: `${bar}%` }}
                     whileInView={{ height: `${bar}%` }}
                     viewport={{ once: true }}
                     transition={{ duration: 1, delay: delay + index * 0.08 }}
@@ -776,7 +776,7 @@ function MetricPanel({
                   strokeLinecap="round"
                   strokeWidth="12"
                   strokeDasharray={276}
-                  initial={{ strokeDashoffset: 276 }}
+                  initial={{ strokeDashoffset: 276 - (ring / 100) * 276 }}
                   whileInView={{ strokeDashoffset: 276 - (ring / 100) * 276 }}
                   viewport={{ once: true }}
                   transition={{ duration: 1.1, delay: delay + index * 0.1 }}
@@ -798,7 +798,7 @@ function TrustSection() {
     <StorySection eyebrow="Trust" title="Trust is engineered into the output.">
       <div className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {trust.map((item, index) => (
-          <motion.div key={item} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm" initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.05 }}>
+          <motion.div key={item} className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm" initial={false} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.05 }}>
             <BadgeCheck className="h-5 w-5 text-blue-600" />
             <p className="mt-10 text-xl font-semibold tracking-[-0.04em] text-slate-950">{item}</p>
           </motion.div>
@@ -846,7 +846,7 @@ function ChatStorySection() {
 function StorySection({ children, eyebrow, title }: { children: ReactNode; eyebrow: string; title: string }) {
   return (
     <section className="mx-auto max-w-7xl px-5 py-28 md:px-10">
-      <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-120px" }} variants={fadeUp} className="max-w-5xl">
+      <motion.div initial={false} whileInView="visible" viewport={{ once: true, margin: "-120px" }} variants={fadeUp} className="max-w-5xl">
         <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-700">{eyebrow}</p>
         <h2 className="mt-5 text-5xl font-semibold leading-[0.95] tracking-[-0.065em] text-slate-950 md:text-7xl">
           {title}
@@ -1122,7 +1122,7 @@ function ReasoningTrace({ loading, trace }: { loading: boolean; trace: TraceEven
       </div>
       <div className="mt-4 grid gap-2">
         {(trace.length ? trace.map((item) => item.message) : fallback).map((item, index) => (
-          <motion.div key={`${item}-${index}`} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-700" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <motion.div key={`${item}-${index}`} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-700" initial={false} animate={{ opacity: 1, y: 0 }}>
             <CheckCircle2 className={`h-4 w-4 ${trace.length || index < 1 ? "text-green-600" : "text-slate-300"}`} />
             {item}
           </motion.div>
@@ -1375,7 +1375,7 @@ function PanelHeader({ body, icon: Icon, title }: { body: string; icon: LucideIc
 
 function Expandable({ children, defaultOpen = false, icon: Icon, title }: { children: ReactNode; defaultOpen?: boolean; icon: LucideIcon; title: string }) {
   const [open, setOpen] = useState(defaultOpen);
-  return <div className="rounded-[1.5rem] border border-slate-200 bg-white"><button className="flex w-full items-center justify-between px-4 py-4 text-left font-semibold text-slate-950" onClick={() => setOpen((value) => !value)} type="button"><span className="flex items-center gap-3"><Icon className="h-4 w-4 text-blue-600" /> {title}</span><ChevronDown className={`h-4 w-4 text-slate-400 transition ${open ? "rotate-180" : ""}`} /></button>{open ? <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="border-t border-slate-100 p-4">{children}</motion.div> : null}</div>;
+  return <div className="rounded-[1.5rem] border border-slate-200 bg-white"><button className="flex w-full items-center justify-between px-4 py-4 text-left font-semibold text-slate-950" onClick={() => setOpen((value) => !value)} type="button"><span className="flex items-center gap-3"><Icon className="h-4 w-4 text-blue-600" /> {title}</span><ChevronDown className={`h-4 w-4 text-slate-400 transition ${open ? "rotate-180" : ""}`} /></button>{open ? <motion.div initial={false} animate={{ opacity: 1, height: "auto" }} className="border-t border-slate-100 p-4">{children}</motion.div> : null}</div>;
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
